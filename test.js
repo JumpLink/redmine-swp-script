@@ -1,3 +1,4 @@
+#!/usr/bin/nodejs
 // https://github.com/GraemeF/redminer
 // https://github.com/danwrong/restler
 // https://github.com/sotarok/node-redmine
@@ -7,6 +8,7 @@ var Redmine    = require('redmine');
 var sys        = require('util');
 var config     = require('./config/config.js');
 var mysql      = require('mysql');
+var exec       = require('child_process').exec;
 
 // Redmine mit entsprechenden Einstellungen aus der config/redmine,json
 var redmine = new Redmine({
@@ -45,3 +47,17 @@ function lock_all_users_mysql () {
 
   connection.end();
 }
+
+function backup_database_mysql () {
+  if (config.mysql.host == "localhost" || config.mysql.host == "127.0.0.1") {
+    var command = "/usr/bin/mysqldump -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+"/backup/db/"+config.mysql.name+"_`date +%F_%T`.gz";
+    console.log(command);
+    exec(command, function (error, stdout, stderr) { 
+      console.log(stdout);
+    });
+  } else {
+    console.log("Nicht möglich, da sich der MySQL-Server nicht auf diesem Rechner befindet.");
+  }
+}
+
+var projects = config.open("../templates/project.json");
