@@ -5,34 +5,69 @@
 // http://www.redmine.org/projects/redmine/wiki/Rest_api
 /*
  * Autor: Pascal Garber
- * License: Do whatever you want, but please publish your changes.
+ * License: Do whatever you want, but please publish your changes under the same license.
  */
 
-var Redmine    = require('redmine');              // Redmine-REST-API
-var json_file  = require(__dirname+'/json.js');   // Json-Dateien laden
-var mysql      = require('mysql');                // MySQL-Zugriff
-var exec       = require('child_process').exec;   // Linux Befehle ausführen
-var fs         = require('fs');                   // Dateisystem-Zugriff
-var moment     = require('moment-range');         // Tools für das Rechnen mit Zeiten
+var Redmine    = require('redmine');                                          // Redmine-REST-API
+var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
+var mysql      = require('mysql');                                            // MySQL-Zugriff
+var exec       = require('child_process').exec;                               // Linux Befehle ausführen
+var fs         = require('fs');                                               // Dateisystem-Zugriff
+var moment     = require('moment-range');                                     // Tools für das Rechnen mit Zeiten
 
-// Beinhaltet die Configurationen aus dem config-Verzeichnis
-var config     = {
-  mysql: json_file.open('config/mysql.json'),
-  redmine: json_file.open('config/redmine.json')
-}
+// Option-Parser
+var optimist   = require('optimist')                                           
+                  .usage('Aufruf: $0 [OPTION]... [DATEI]...')
+                  .boolean(['b','h','s','d','l'])
+                  .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
+                  .alias('c', 'configpath').default('c', 'config/').describe('c', '[PATH] Alternatives Config-Verzeichnis verwenden')
+                  .alias('m', 'mysqlconfig').default('m', 'mysql.json').describe('m', '\t[DATEI] Alternative MySQL-Config verwenden')
+                  .alias('r', 'redmineconfig').default('r', 'redmine.json').describe('r', '\t[DATEI] Alternative Redmine-Config verwenden')
+                  .alias('s', 'semester').describe('s', 'Aktuelle Semesterbezeichnung ausgeben')
+                  .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
+                  .alias('t', 'template').describe('t', '[DATEI] Projekte und Benutzer anhand einer Template-Datei erstellen')
+                  .alias('p', 'templatepath').default('p', 'templates/').describe('p', '\tAnderes Templateverzeichnis verwenden')
+                  .alias('d', 'debug').default('d', false).describe('d', 'Debug-Modus aktivieren')
+                  .alias('l', 'lock').describe('l', 'Alle aktiven Benutzer - bis auf ars, si und admin - sperren')
+                  .alias('n', 'newproject').describe('n', 'Neues Projekt anlegen')
+                  .alias('N', 'projectname').describe('N', '\tProjektname für neues Projekt')
+                  .alias('D', 'description').describe('D', '\tBeschreibung für neues Projekt')
+                  .alias('I', 'identifier').describe('I', '\tID-URL für neues Projekt')
+                  .alias('P', 'parentid').describe('P', '\tID des Elternprojektes für neues Projekt')
+                  .alias('b', 'backup').describe('b', 'Backup der Redmine-Datenbank erstellen')
+                  .alias('B', 'backuppath').default('B', '/backup/db/').describe('B', '\t[PATH] Alternatives Backup-Verzeichnis verwenden')
 
-// Redmine mit entsprechenden Einstellungen aus der config/redmine.json
+var argv       = optimist.argv;
+// Configurationen laden
+var config     =  {
+                    mysql: json_file.open(argv.configpath+argv.mysqlconfig),
+                    redmine: json_file.open(argv.configpath+argv.redmineconfig)
+                  }
+// Weitere Config-Abhängige Optionen                
+optimist.alias('o', 'output').default('o', config.mysql.name+"_`date +%F_%T`.gz").describe('o', '\t[DATEI] Backup-Zieldateiname');
+
+// Weitere Optionen übernehmen
+argv       = optimist.argv;
+
+
+if(argv.help)
+  optimist.showHelp();
+
+
+
+
+// Redmine mit entsprechender Config
 var redmine = new Redmine({
   host: config.redmine.host,
   apiKey: config.redmine.apiKey
 });
 
-// mysql-Verbindung mit entsprechenden Einstellungen aus der config/mysql.json
+// mysql-Verbindung mit entsprechender Config
 var connection = mysql.createConnection({
   host     : config.mysql.host,
   user     : config.mysql.user,
   password : config.mysql.password,
-  debug: false
+  debug: argv.debug
 });
 
 /*
@@ -66,7 +101,7 @@ function lock_all_users_mysql () {
 function backup_database_mysql () {
   fs.exists('/usr/bin/mysqldump', function (exists) {
     if(exists) {
-      var command = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+"/backup/db/"+config.mysql.name+"_`date +%F_%T`.gz";
+      var command = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+argv.backpath+argv.output;
       exec(command, function (error, stdout, stderr) { 
         console.log(stdout);
       });
@@ -111,47 +146,32 @@ function get_semester () {
 }
   
 /*
- * Erzeugt ein neues Hauptprojekt.
+ * Erzeugt ein neues Projekt.
  *
- * @param name: Name des Projektes als String.
- * @param description: Beschreibung des Projektes als String.
+ * @param name: Name des Projektes als String
+ * @param description: Beschreibung des Projektes als String
+ * @param identifier: URL-Teil
  * @param links: Links als Liste von Strings die in die Beschreibung mit übernommen werden.
- * @param cb: callback-Funktion
- */ 
-function create_main_project_rest (name, description, links, cb) {
-  var project = {
-    name: name,
-    identifier: get_semester()+"-main",
-    description: description + "\n"
-  };
-  for (var i in links)
-     project.description += "\n"+links[i];
-
-  redmine.postProject(project, function(data) {
-     if (data instanceof Error) {
-      console.log("Error: "+data);
-      return;
-    }
-    cb(data);
-  });
-}
-
-/*
- * Erzeugt ein neues Unterprojekt.
- *
- * @param name: Name des Projektes als String.
- * @param description: Beschreibung des Projektes als String.
  * @param parent: Elternprojekt
  * @param number: Zähler
  * @param cb: callback-Funktion
  */ 
-function create_sub_project_rest (name, description, parent, number, cb) {
+function create_project_rest (name, description, identifier, links, parent, number, cb) {
   var project = {
     name: name,
-    identifier: get_semester()+"-sub"+number,
-    description: description,
-    parent_id: parent.project.id
+    identifier: identifier,
   };
+  if (description)
+    project.description = description;
+
+  if (parent && parent.project && parent.project.id)
+    project.parent_id = parent.project.id;
+
+  if (links) {
+    project.description += "\n";
+    for (var i in links)
+      project.description += "\n"+links[i];
+  }
 
   redmine.postProject(project, function(data) {
      if (data instanceof Error) {
@@ -163,55 +183,27 @@ function create_sub_project_rest (name, description, parent, number, cb) {
 }
 
 /*
- * Erzeugt ein weiteres Unterprojekt genannt Gruppe,
- * Gruppe da passendere Bezeichnung für Sinn und Zweck dieses Unterprojektes.
+ * Projekte anhand eines template-json-strings laden.
  *
- * @param name: Name des Projektes als String.
- * @param parent: Elternprojekt
- * @param cb: callback-Funktion
+ * Verarbeitung asynchron daher Ausgabenreihenfolge unvorhersehbar.
  */ 
-function create_sub_project_group_rest (name, parent, cb) {
-  var project = {
-    name: name,
-    identifier: get_semester()+"-"+name.toLowerCase().replace(" ", "-"),
-    parent_id: parent.project.id
-  };
-  console.log(project);
-  redmine.postProject(project, function(data) {
-     if (data instanceof Error) {
-      console.log("Error: "+data);
-      return;
-    }
-    cb(data);
-  });
-}
-
-/*
- * Template in Form einer Json-Datei laden und dadurch Projekte und Benutzer anlegen.
- * Die Verarbeitung läuft asynchron, daher Ausgabe ebenfalls asynchron und
- * augenscheinlich in falscher Reihenfolge.
- */ 
-function load_template (filename) {
-
-  // Ladet das Template
-  var template = json_file.open('templates/'+filename);
-  
+function create_projects (template) {
   // Erzeugt Hauptproject
-  create_main_project_rest(template.project.name, template.project.description, template.project.links, function(main_project){
+  create_project_rest (template.project.name, template.project.description, get_semester()+"-main", template.project.links, null, 0, function(main_project){
     console.log("Hauptprojekt '"+main_project.project.name+"' mit ID "+main_project.project.id+" erfolgreich erstellt.");
     
     // Durchläut Teilprojekte
     for (var k in template.project.subprojects) {
 
       // Erstellt Teilprojekt
-      create_sub_project_rest (template.project.subprojects[k].name, template.project.subprojects[k].description, main_project, k, function(sub_project, number) {
+      create_project_rest (template.project.subprojects[k].name, template.project.subprojects[k].description, get_semester()+"-sub"+k, null, main_project, k, function(sub_project, number) {
         console.log("Unterprojekt '"+sub_project.project.name+"' mit ID "+sub_project.project.id+" erfolgreich erstellt.");
 
         // Durchläuft Teilprojektgruppen
         for (var n in template.project.subprojects[number].groups) {
 
-          // Erstellt Teilprojektgruppe
-          create_sub_project_group_rest (template.project.subprojects[number].groups[n], sub_project, function(group) {
+          // Erstellt Teilprojektgrupp
+          create_project_rest (template.project.subprojects[number].groups[n], null, get_semester()+"-"+template.project.subprojects[number].groups[n].toLowerCase().replace(" ", "-"), null, sub_project, n, function(group, number) {
             console.log("tGruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
           });
         }
@@ -220,5 +212,37 @@ function load_template (filename) {
   });
 }
 
-//load_template ("lua.json");
+/*
+ * Template in Form einer Json-Datei laden und dadurch Projekte und Benutzer anlegen.
+ *
+ * @param filename: String des Dateinamens der Datei die aus ./templates/ geladen werden soll.
+ */ 
+function load_template (filename) {
+  console.log(argv.p+filename);
+  // Ladet das Template
+  var template = json_file.open(argv.p+filename);
 
+  create_projects (template);
+
+}
+
+if(argv.backup)
+  backup_database_mysql ();
+if(argv.lock)
+  lock_all_users_mysql();
+if(argv.semester)
+  console.log(get_semester ());
+if(argv.template)
+  load_template (argv.template);
+if(argv.newproject) {
+  if(!argv.projectname || !argv.identifier) {
+    optimist.showHelp();
+    console.log("\nNicht genügend Optionen angegeben!");
+  } else{
+    var parent = {project:{id:argv.parentid}}
+    create_project_rest (argv.projectname, argv.description, argv.identifier, null, parent, 0, function(data) {
+      console.log(data);
+    })
+  }
+}
+    
