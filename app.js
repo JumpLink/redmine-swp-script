@@ -3,14 +3,17 @@
 // https://github.com/danwrong/restler
 // https://github.com/sotarok/node-redmine
 // http://www.redmine.org/projects/redmine/wiki/Rest_api
+/*
+ * Autor: Pascal Garber
+ * License: Do whatever you want, but please publish your changes.
+ */
 
 var Redmine    = require('redmine');              // Redmine-REST-API
-var sys        = require('util');
 var json_file  = require(__dirname+'/json.js');   // Json-Dateien laden
 var mysql      = require('mysql');                // MySQL-Zugriff
 var exec       = require('child_process').exec;   // Linux Befehle ausführen
 var fs         = require('fs');                   // Dateisystem-Zugriff
-var moment     = require('moment-range');               // Tools für das Rechnen mit Zeiten
+var moment     = require('moment-range');         // Tools für das Rechnen mit Zeiten
 
 // Beinhaltet die Configurationen aus dem config-Verzeichnis
 var config     = {
@@ -102,43 +105,120 @@ function get_semester () {
   else
     // Aktuelle Zeit innerhalb des Wintersemesters vor Silvester?
     if( now.within(moment().range(ws_before.start, ws_before.end)) )
-      return "ws"+Number(now.format("YY"))+"/"+(Number(now.format("YY"))+1);
+      return "ws"+Number(now.format("YY"))+"-"+(Number(now.format("YY"))+1);
     else
-      return "ws"+(Number(now.format("YY"))-1)+"/"+Number(now.format("YY"));
+      return "ws"+(Number(now.format("YY"))-1)+"-"+Number(now.format("YY"));
 }
   
-
-function create_project_rest (name, description, links, type) {
+/*
+ * Erzeugt ein neues Hauptprojekt.
+ *
+ * @param name: Name des Projektes als String.
+ * @param description: Beschreibung des Projektes als String.
+ * @param links: Links als Liste von Strings die in die Beschreibung mit übernommen werden.
+ * @param cb: callback-Funktion
+ */ 
+function create_main_project_rest (name, description, links, cb) {
   var project = {
     name: name,
-    identifier: "test",
-    description: description
+    identifier: get_semester()+"-main",
+    description: description + "\n"
   };
+  for (var i in links)
+     project.description += "\n"+links[i];
+
   redmine.postProject(project, function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
       return;
     }
-    console.log(data);
+    cb(data);
+  });
+}
+
+/*
+ * Erzeugt ein neues Unterprojekt.
+ *
+ * @param name: Name des Projektes als String.
+ * @param description: Beschreibung des Projektes als String.
+ * @param parent: Elternprojekt
+ * @param number: Zähler
+ * @param cb: callback-Funktion
+ */ 
+function create_sub_project_rest (name, description, parent, number, cb) {
+  var project = {
+    name: name,
+    identifier: get_semester()+"-sub"+number,
+    description: description,
+    parent_id: parent.project.id
+  };
+
+  redmine.postProject(project, function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb(data, number);
+  });
+}
+
+/*
+ * Erzeugt ein weiteres Unterprojekt genannt Gruppe,
+ * Gruppe da passendere Bezeichnung für Sinn und Zweck dieses Unterprojektes.
+ *
+ * @param name: Name des Projektes als String.
+ * @param parent: Elternprojekt
+ * @param cb: callback-Funktion
+ */ 
+function create_sub_project_group_rest (name, parent, cb) {
+  var project = {
+    name: name,
+    identifier: get_semester()+"-"+name.toLowerCase().replace(" ", "-"),
+    parent_id: parent.project.id
+  };
+  console.log(project);
+  redmine.postProject(project, function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb(data);
   });
 }
 
 /*
  * Template in Form einer Json-Datei laden und dadurch Projekte und Benutzer anlegen.
+ * Die Verarbeitung läuft asynchron, daher Ausgabe ebenfalls asynchron und
+ * augenscheinlich in falscher Reihenfolge.
  */ 
 function load_template (filename) {
+
+  // Ladet das Template
   var template = json_file.open('templates/'+filename);
-  console.log("Name");
-  console.log(template.project.name);
-  console.log("Description");
-  console.log(template.project.description);
-  console.log("Links");
-  for (var i in template.project.links) 
-    console.log(template.project.links[i]);
-  console.log("SubProjects");
-  for (var i in template.project.subprojects) 
-    console.log(template.project.subprojects[i]);
+  
+  // Erzeugt Hauptproject
+  create_main_project_rest(template.project.name, template.project.description, template.project.links, function(main_project){
+    console.log("Hauptprojekt '"+main_project.project.name+"' mit ID "+main_project.project.id+" erfolgreich erstellt.");
+    
+    // Durchläut Teilprojekte
+    for (var k in template.project.subprojects) {
+
+      // Erstellt Teilprojekt
+      create_sub_project_rest (template.project.subprojects[k].name, template.project.subprojects[k].description, main_project, k, function(sub_project, number) {
+        console.log("Unterprojekt '"+sub_project.project.name+"' mit ID "+sub_project.project.id+" erfolgreich erstellt.");
+
+        // Durchläuft Teilprojektgruppen
+        for (var n in template.project.subprojects[number].groups) {
+
+          // Erstellt Teilprojektgruppe
+          create_sub_project_group_rest (template.project.subprojects[number].groups[n], sub_project, function(group) {
+            console.log("tGruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
+          });
+        }
+      });
+    }
+  });
 }
 
 //load_template ("lua.json");
-console.log(get_semester());
+
