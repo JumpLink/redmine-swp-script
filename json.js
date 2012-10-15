@@ -28,5 +28,3 @@ function openSync(filename) {
 
 module.exports.save = save;
 module.exports.open = openSync;
-module.exports.mysql = openSync('mysql.json');
-module.exports.redmine = openSync('redmine.json');
