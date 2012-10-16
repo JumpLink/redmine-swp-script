@@ -14,6 +14,7 @@ var optimist   = require('optimist')                                          //
                   .alias('d', 'debug').default('d', false).describe('d', 'Debug-Modus aktivieren')
                   .alias('l', 'lock').describe('l', 'Alle aktiven Benutzer - bis auf ars, si und admin - sperren')
                   .alias('g', 'getusers').describe('g', 'Alle Benutzer im JSON-Format ausgeben')
+                  .alias('M', 'mail').default('M', 'fh-wedel.de').describe('M', '\tAlternative Benutzer-Email-Domain festlegen')
                   .alias('G', 'getprojects').describe('G', 'Alle Projekte im JSON-Format ausgeben')
                   .alias('N', 'project').describe('N', 'Neues Projekt mit Projektname anlegen')
                   .alias('D', 'description').describe('D', '\tBeschreibung für neues Projekt')

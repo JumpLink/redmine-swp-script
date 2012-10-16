@@ -29,6 +29,53 @@ var connection = mysql.createConnection({
   debug: argv.debug
 });
 
+
+/*
+ * Speichert die angelegten Gruppen-IDs (bzw. Projekt-IDs auf niedrigster Ebene)
+ * da diese später noch gebraucht werden.
+ */ 
+var groups = [];
+
+/*
+ * Speichert die angelegten Benutzer-IDs da diese später noch gebraucht werden.
+ */ 
+var users = [];
+
+/*
+ * Hilfsfunktionen zur Verwalltung von users und groups damit keine Verwechselungsgefahr besteht.
+ */ 
+function get_group(name) {
+  get_data (groups);
+}
+
+function get_users(name) {
+  get_data (users);
+}
+
+function get_data(data, name) {
+  for (var i in data)
+    if (data[i].name == name)
+      return data[i];
+    return null;
+}
+
+function add_group(name, id) {
+  groups.push({name:name,id:id})
+}
+
+function get_group_length(name, id) {
+  return groups.length;
+}
+
+function add_user(name, id) {
+  groups.push({name:name,id:id})
+}
+
+function get_user_length(name, id) {
+  return groups.length;
+}
+
+
 /*
  * Alle Projekte mittels mysql Archivieren (bzw. deaktivieren)
  * status: 9 = archiviert; 1 = aktiviert
@@ -137,8 +184,94 @@ function create_project_rest (name, description, identifier, links, parent, numb
       console.log("Error: "+data);
       return;
     }
-    cb(data, number);
+    cb (data, number);
   });
+}
+
+/*
+ * Alle Projekte im JSON-Format ausgeben.
+ */ 
+function get_projects_rest (cb) {
+  redmine.getProjects(function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb (data);
+  });
+}
+
+function create_user_rest (login, firstname, lastname, mail, cb) {
+  var user = {
+    login: login,
+    firstname: firstname,
+    lastname: lastname,
+    mail: mail,
+  };
+  redmine.postUser(user, function(data) {
+    // FIXME
+    // if (data instanceof Error) {
+    //   console.log("Error: " + data);
+    //   return;
+    // }
+    cb (data);
+  });
+}
+
+/*
+ * Alle Benutzer im JSON-Format ausgeben.
+ */ 
+function get_users_rest (cb) {
+  redmine.getUsers(function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb (data);
+  });
+}
+
+/*
+ * Alle Gruppen im JSON-Format ausgeben. FIXME
+ */ 
+function get_groups_rest (cb) {
+  redmine.getGroups({}, function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb (data);
+  });
+}
+
+/*
+ * Gruppe über die Rest-API erstellen FIXME
+ */ 
+function create_group_rest (name, user_ids, cb) {
+  var group = {
+    login: name,
+    user_ids: user_ids
+  };
+  redmine.postGroup(group, function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb (data);
+  });
+}
+
+/*
+ * Benutzer anhand eines template-json-strings erstellen.
+ */ 
+function create_fh_users (template) {
+  // Durchläut Benutzer
+  for (var i in template.users) {
+    // Benutzer anlegen
+    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, login+"@"+argv.mail, function(){
+      console.log(data);
+    });
+  }
 }
 
 /*
@@ -146,7 +279,7 @@ function create_project_rest (name, description, identifier, links, parent, numb
  *
  * Verarbeitung asynchron daher Ausgabenreihenfolge unvorhersehbar.
  */ 
-function create_projects (template) {
+function create_fh_projects (template, cb) {
   // Erzeugt Hauptproject
   create_project_rest (template.project.name, template.project.description, get_semester()+"-main", template.project.links, null, 0, function(main_project){
     console.log("Hauptprojekt '"+main_project.project.name+"' mit ID "+main_project.project.id+" erfolgreich erstellt.");
@@ -161,39 +294,20 @@ function create_projects (template) {
         // Durchläuft Teilprojektgruppen
         for (var n in template.project.subprojects[number].groups) {
 
-          // Erstellt Teilprojektgrupp
+          // Erstellt Teilprojektgruppe
           create_project_rest (template.project.subprojects[number].groups[n], null, get_semester()+"-"+template.project.subprojects[number].groups[n].toLowerCase().replace(" ", "-"), null, sub_project, n, function(group, number) {
-            console.log("tGruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
+            add_group(group.project.name, group.project.id);
+            console.log("Gruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
+
+            // Da Ablauf asynchron hier ueberpruefung ob alle Unterprojekte erstellt wurden
+            if(get_group_length() == template.groups.length) {
+              console.log("Alle Gruppen erstellt.")
+              cb(true);
+            }
           });
         }
       });
     }
-  });
-}
-
-/*
- * Alle Projekte im JSON-Format ausgeben.
- */ 
-function get_projects_rest () {
-  redmine.getProjects(function(data) {
-     if (data instanceof Error) {
-      console.log("Error: "+data);
-      return;
-    }
-    console.log(data);
-  });
-}
-
-/*
- * Alle Benutzer im JSON-Format ausgeben.
- */ 
-function get_users_rest () {
-  redmine.getUsers(function(data) {
-     if (data instanceof Error) {
-      console.log("Error: "+data);
-      return;
-    }
-    console.log(data);
   });
 }
 
@@ -204,7 +318,13 @@ function get_users_rest () {
  */ 
 function load_template (filename) {
   var template = json_file.open(argv.p+filename);
-  create_projects (template);
+  console.log("Erstelle Projekte");
+  create_fh_projects (template function() {
+    console.log("Erstelle Benutzer");
+    //create_fh_users (template);
+  });
+  
+  
 }
 
 /*
@@ -218,11 +338,15 @@ function run() {
 
   // Projekte ausgeben
   if(argv.getprojects)
-    get_projects_rest ();
+    get_projects_rest (function(data){
+      console.log(data);
+    });
 
   // Benutzer ausgeben
   if(argv.getusers)
-    get_users_rest ();
+    get_users_rest (function(data){
+      console.log(data);
+    });
 
   // Backup erstellen
   if(argv.backup)
@@ -259,3 +383,10 @@ function run() {
 }
     
 run();
+
+//var template = json_file.open(argv.p+"lua.json");
+// create_fh_users (template);
+//get_groups_rest();
+// create_group_rest("test", [1,50], function (data) {
+//   console.log(data);
+// })
