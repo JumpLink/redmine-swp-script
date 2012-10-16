@@ -34,7 +34,7 @@ Diese Gruppen werden unter Redmine als Projekt behandelt, stellen im Software-Pr
 
 ### Valide
 
-Das Attribut groups muss die gleiche Länge haben wie die Summe der groups-Längen innerhalb aller subprojectAttribute.
+Das Attribut groups muss die gleiche Länge haben wie die Summe der groups-Längen innerhalb aller subproject-Attribute.
 
 Die Länge dieses Arrays groups muss der Länge des Arrays aus groups innerhalb aller project.subprojects entsprechen.
 
