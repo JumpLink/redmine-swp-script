@@ -1,60 +1,19 @@
 #!/usr/bin/nodejs
-// https://github.com/GraemeF/redminer
-// https://github.com/danwrong/restler
-// https://github.com/sotarok/node-redmine
-// http://www.redmine.org/projects/redmine/wiki/Rest_api
 /*
  * Autor: Pascal Garber
  * License: Do whatever you want, but please publish your changes under the same license.
  */
 
 var Redmine    = require('redmine');                                          // Redmine-REST-API
-var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
 var mysql      = require('mysql');                                            // MySQL-Zugriff
 var exec       = require('child_process').exec;                               // Linux Befehle ausführen
 var fs         = require('fs');                                               // Dateisystem-Zugriff
 var moment     = require('moment-range');                                     // Tools für das Rechnen mit Zeiten
-
-// Option-Parser
-var optimist   = require('optimist')                                           
-                  .usage('Aufruf: $0 [OPTION]... [DATEI]...')
-                  .boolean(['b','h','s','d','l'])
-                  .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
-                  .alias('c', 'configpath').default('c', 'config/').describe('c', '[PATH] Alternatives Config-Verzeichnis verwenden')
-                  .alias('m', 'mysqlconfig').default('m', 'mysql.json').describe('m', '\t[DATEI] Alternative MySQL-Config verwenden')
-                  .alias('r', 'redmineconfig').default('r', 'redmine.json').describe('r', '\t[DATEI] Alternative Redmine-Config verwenden')
-                  .alias('s', 'semester').describe('s', 'Aktuelle Semesterbezeichnung ausgeben')
-                  .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
-                  .alias('t', 'template').describe('t', '[DATEI] Projekte und Benutzer anhand einer Template-Datei erstellen')
-                  .alias('p', 'templatepath').default('p', 'templates/').describe('p', '\tAnderes Templateverzeichnis verwenden')
-                  .alias('d', 'debug').default('d', false).describe('d', 'Debug-Modus aktivieren')
-                  .alias('l', 'lock').describe('l', 'Alle aktiven Benutzer - bis auf ars, si und admin - sperren')
-                  .alias('n', 'newproject').describe('n', 'Neues Projekt anlegen')
-                  .alias('N', 'projectname').describe('N', '\tProjektname für neues Projekt')
-                  .alias('D', 'description').describe('D', '\tBeschreibung für neues Projekt')
-                  .alias('I', 'identifier').describe('I', '\tID-URL für neues Projekt')
-                  .alias('P', 'parentid').describe('P', '\tID des Elternprojektes für neues Projekt')
-                  .alias('b', 'backup').describe('b', 'Backup der Redmine-Datenbank erstellen')
-                  .alias('B', 'backuppath').default('B', '/backup/db/').describe('B', '\t[PATH] Alternatives Backup-Verzeichnis verwenden')
-
-var argv       = optimist.argv;
-// Configurationen laden
-var config     =  {
-                    mysql: json_file.open(argv.configpath+argv.mysqlconfig),
-                    redmine: json_file.open(argv.configpath+argv.redmineconfig)
-                  }
-// Weitere Config-Abhängige Optionen                
-optimist.alias('o', 'output').default('o', config.mysql.name+"_`date +%F_%T`.gz").describe('o', '\t[DATEI] Backup-Zieldateiname');
-
-// Weitere Optionen übernehmen
-argv       = optimist.argv;
-
-
-if(argv.help)
-  optimist.showHelp();
-
-
-
+var option     = require(__dirname+'/option.js');                             // Ausgelagerte Option verarbeitung laden
+var optimist   = option.optimist;                                             // Option-Tool
+var argv       = option.argv;                                                 // Übergebene Option
+var config     = option.config;                                               // Configurationsdateien
+var json_file  = option.json_file;                                            // Json-Dateien laden
 
 // Redmine mit entsprechender Config
 var redmine = new Redmine({
@@ -96,7 +55,7 @@ function lock_all_users_mysql () {
 
 /*
  * Backup der Redmine-Datenbank erstellen
- * Bedinung: mysqldump muss instaliiert sein.
+ * Bedingung: mysqldump muss instaliiert sein.
  */ 
 function backup_database_mysql () {
   fs.exists('/usr/bin/mysqldump', function (exists) {
@@ -213,36 +172,90 @@ function create_projects (template) {
 }
 
 /*
+ * Alle Projekte im JSON-Format ausgeben.
+ */ 
+function get_projects_rest () {
+  redmine.getProjects(function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    console.log(data);
+  });
+}
+
+/*
+ * Alle Benutzer im JSON-Format ausgeben.
+ */ 
+function get_users_rest () {
+  redmine.getUsers(function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    console.log(data);
+  });
+}
+
+/*
  * Template in Form einer Json-Datei laden und dadurch Projekte und Benutzer anlegen.
  *
  * @param filename: String des Dateinamens der Datei die aus ./templates/ geladen werden soll.
  */ 
 function load_template (filename) {
-  console.log(argv.p+filename);
-  // Ladet das Template
   var template = json_file.open(argv.p+filename);
-
   create_projects (template);
-
 }
 
-if(argv.backup)
-  backup_database_mysql ();
-if(argv.lock)
-  lock_all_users_mysql();
-if(argv.semester)
-  console.log(get_semester ());
-if(argv.template)
-  load_template (argv.template);
-if(argv.newproject) {
-  if(!argv.projectname || !argv.identifier) {
-    optimist.showHelp();
-    console.log("\nNicht genügend Optionen angegeben!");
-  } else{
-    var parent = {project:{id:argv.parentid}}
-    create_project_rest (argv.projectname, argv.description, argv.identifier, null, parent, 0, function(data) {
-      console.log(data);
-    })
+/*
+ * Anhand übergebene Option Skript ausführen
+ */
+function run() {
+
+  // Hilfe ausgeben
+  if(argv.help)
+    optimist.showHelp ();
+
+  // Projekte ausgeben
+  if(argv.getprojects)
+    get_projects_rest ();
+
+  // Benutzer ausgeben
+  if(argv.getusers)
+    get_users_rest ();
+
+  // Backup erstellen
+  if(argv.backup)
+    backup_database_mysql ();
+
+  // User sperren
+  if(argv.lock)
+    lock_all_users_mysql ();
+
+  // Projekte archivieren
+  if(argv.archive)
+    archive_all_projects_mysql ();
+
+  // Semesterbezeichnung ausgeben
+  if(argv.semester)
+    console.log(get_semester ());
+
+  // Template verarbeiten
+  if(argv.template)
+    load_template (argv.template);
+
+  // Neues Projekt erstellen
+  if(argv.project) {
+    if(!argv.identifier) {
+      optimist.showHelp();
+      console.log("\nIdentifier nicht angegeben!");
+    } else{
+      var parent = {project:{id:argv.parentid}}
+      create_project_rest (argv.project, argv.description, argv.identifier, null, parent, 0, function(data) {
+        console.log(data);
+      })
+    }
   }
 }
     
+run();
