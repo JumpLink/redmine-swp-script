@@ -12,7 +12,7 @@ Das Template beinhaltet 3 Hauptattribute:
 
 ### project
 
-Das project-Attribute beinhaltet an erster Stelle das Hauptprojekt, das Hauptprojekt ist das Hauptthema des Software-Projektes.
+Das project-Attribut beinhaltet an erster Stelle das Hauptprojekt, das Hauptprojekt ist das Hauptthema des Software-Projektes.
 Das Hauptprojekt hat die folgenden Atribute:
 * project.name: "..."
 * project.description: "..."
@@ -21,20 +21,22 @@ Das Hauptprojekt hat die folgenden Atribute:
 
 #### project.subprojects
 -----------
-Das subprojects-Attribute ist ein Array mit Unterprojekten und hat unter anderem das Attribute
+Das subprojects-Attribut ist ein Array mit Unterprojekten und hat unter anderem das Attribut
 * project.subprojects[#].groups: [...]
 
 ##### project.subprojects[#].groups
 ---------------------
 Diese Gruppen werden unter Redmine als Projekt behandelt, stellen im Software-Projekt aber die Programmiergruppen da.
 
-Achtung: Die Länge dieses Arrays project.subprojects[#].groups muss der Länge des Arrays von groups entsprechen.
-
 ### users
 
 ### groups
 
-Achtung: Die Länge dieses Arrays groups muss der Länge des Arrays von project.subprojects[#].groups entsprechen.
+### Valide
+
+Das Attribut groups muss die gleiche Länge haben wie die Summe der groups-Längen innerhalb aller subprojectAttribute.
+
+Die Länge dieses Arrays groups muss der Länge des Arrays aus groups innerhalb aller project.subprojects entsprechen.
 
 Siehe auch
 --------
