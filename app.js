@@ -44,35 +44,35 @@ var users = [];
 /*
  * Hilfsfunktionen zur Verwalltung von users und groups damit keine Verwechselungsgefahr besteht.
  */ 
-function get_group(name) {
+function get_group (name) {
   get_data (groups);
 }
 
-function get_users(name) {
+function get_users (name) {
   get_data (users);
 }
 
-function get_data(data, name) {
+function get_data (data, name) {
   for (var i in data)
     if (data[i].name == name)
       return data[i];
     return null;
 }
 
-function add_group(name, id) {
+function add_group (name, id) {
   groups.push({name:name,id:id})
 }
 
-function get_group_length(name, id) {
+function get_group_length (name, id) {
   return groups.length;
 }
 
-function add_user(name, id) {
-  groups.push({name:name,id:id})
+function add_user (name, id) {
+  users.push({name:name,id:id})
 }
 
-function get_user_length(name, id) {
-  return groups.length;
+function get_user_length (name, id) {
+  return users.length;
 }
 
 
@@ -96,7 +96,6 @@ function lock_all_users_mysql () {
   connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!=ars and login!=si and login!=admin', function(err, rows, fields) {
    if (err) throw err;
   });
-
   connection.end();
 }
 
@@ -206,7 +205,7 @@ function create_user_rest (login, firstname, lastname, mail, cb) {
     login: login,
     firstname: firstname,
     lastname: lastname,
-    mail: mail,
+    mail: mail
   };
   redmine.postUser(user, function(data) {
     // FIXME
@@ -223,6 +222,19 @@ function create_user_rest (login, firstname, lastname, mail, cb) {
  */ 
 function get_users_rest (cb) {
   redmine.getUsers(function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb (data);
+  });
+}
+
+/*
+ * Alle Rollen im JSON-Format ausgeben. FIXME
+ */ 
+function get_roles_rest (cb) {
+  redmine.getRoles(function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
       return;
@@ -249,7 +261,7 @@ function get_groups_rest (cb) {
  */ 
 function create_group_rest (name, user_ids, cb) {
   var group = {
-    login: name,
+    name: name,
     user_ids: user_ids
   };
   redmine.postGroup(group, function(data) {
@@ -264,12 +276,17 @@ function create_group_rest (name, user_ids, cb) {
 /*
  * Benutzer anhand eines template-json-strings erstellen.
  */ 
-function create_fh_users (template) {
+function create_fh_users (template, cb) {
   // Durchläut Benutzer
-  for (var i in template.users) {
+  for (var i in template.users) {;
     // Benutzer anlegen
-    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, login+"@"+argv.mail, function(){
-      console.log(data);
+    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, function(data){
+      add_user(data.user.login, data.user.id);
+      console.log("Benutzer '"+data.user.login+"' mit ID "+data.user.id+" erfolgreich angelegt.");
+      if (get_user_length() == template.users.length) {
+        console.log("Alle Benutzer angelegt.");
+        cb (true);
+      }
     });
   }
 }
@@ -302,7 +319,7 @@ function create_fh_projects (template, cb) {
             // Da Ablauf asynchron hier ueberpruefung ob alle Unterprojekte erstellt wurden
             if(get_group_length() == template.groups.length) {
               console.log("Alle Gruppen erstellt.")
-              cb(true);
+              cb (true);
             }
           });
         }
@@ -316,15 +333,15 @@ function create_fh_projects (template, cb) {
  *
  * @param filename: String des Dateinamens der Datei die aus ./templates/ geladen werden soll.
  */ 
-function load_template (filename) {
+function load_template (filename, cb) {
   var template = json_file.open(argv.p+filename);
   console.log("Erstelle Projekte");
-  create_fh_projects (template function() {
+  create_fh_projects (template, function() {
     console.log("Erstelle Benutzer");
-    //create_fh_users (template);
+    create_fh_users (template, function() {
+      cb(true);
+    });
   });
-  
-  
 }
 
 /*
@@ -348,6 +365,12 @@ function run() {
       console.log(data);
     });
 
+  // Rollen ausgeben
+  if(argv.getroles)
+    get_roles_rest (function(data){
+      console.log(data);
+    });
+
   // Backup erstellen
   if(argv.backup)
     backup_database_mysql ();
@@ -366,7 +389,9 @@ function run() {
 
   // Template verarbeiten
   if(argv.template)
-    load_template (argv.template);
+    load_template (argv.template, function () {
+
+    });
 
   // Neues Projekt erstellen
   if(argv.project) {

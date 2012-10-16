@@ -7,6 +7,7 @@ var optimist   = require('optimist')                                          //
                   .alias('c', 'configpath').default('c', 'config/').describe('c', 'Alternatives Config-Verzeichnis verwenden')
                   .alias('m', 'mysqlconfig').default('m', 'mysql.json').describe('m', '\tAlternative MySQL-Config verwenden')
                   .alias('r', 'redmineconfig').default('r', 'redmine.json').describe('r', '\tAlternative Redmine-Config verwenden')
+                  .alias('R', 'getroles').describe('R', 'Rollen ausgeben')
                   .alias('s', 'semester').describe('s', 'Aktuelle Semesterbezeichnung ausgeben')
                   .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
                   .alias('t', 'template').describe('t', 'Projekte und Benutzer anhand einer Template-Datei erstellen')
