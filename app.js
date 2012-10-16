@@ -218,7 +218,7 @@ function create_user_rest (login, firstname, lastname, mail, cb) {
 }
 
 /*
- * Alle Benutzer im JSON-Format ausgeben.
+ * Alle Benutzer im JSON-Format an cb übergeben.
  */ 
 function get_users_rest (cb) {
   redmine.getUsers(function(data) {
@@ -231,7 +231,7 @@ function get_users_rest (cb) {
 }
 
 /*
- * Alle Rollen im JSON-Format ausgeben. FIXME
+ * Alle Rollen im JSON-Format an cb übergeben. FIXME
  */ 
 function get_roles_rest (cb) {
   redmine.getRoles(function(data) {
@@ -241,6 +241,17 @@ function get_roles_rest (cb) {
     }
     cb (data);
   });
+}
+
+/*
+ * Alle Rollen als MySQL-Ausgabe ausgeben.
+ */ 
+function get_roles_mysql (cb) {
+  connection.query('select id,name from '+config.mysql.name+'.roles', function(err, rows, fields) {
+   if (err) throw err;
+   cb (rows, fields);
+  });
+  connection.end();
 }
 
 /*
@@ -366,10 +377,14 @@ function run() {
     });
 
   // Rollen ausgeben
-  if(argv.getroles)
-    get_roles_rest (function(data){
-      console.log(data);
+  if(argv.getroles) {
+    // get_roles_rest (function(data){ FIXME
+    //   console.log(data);
+    // });
+    get_roles_mysql (function(rows, fields){
+      console.log(rows);
     });
+  }
 
   // Backup erstellen
   if(argv.backup)
