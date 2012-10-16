@@ -9,11 +9,42 @@ var mysql      = require('mysql');                                            //
 var exec       = require('child_process').exec;                               // Linux Befehle ausführen
 var fs         = require('fs');                                               // Dateisystem-Zugriff
 var moment     = require('moment-range');                                     // Tools für das Rechnen mit Zeiten
-var option     = require(__dirname+'/option.js');                             // Ausgelagerte Option verarbeitung laden
-var optimist   = option.optimist;                                             // Option-Tool
-var argv       = option.argv;                                                 // Übergebene Option
-var config     = option.config;                                               // Configurationsdateien
-var json_file  = option.json_file;                                            // Json-Dateien laden
+var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
+var optimist   = require('optimist')                                          // option-tools
+                  .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
+                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j'])
+                  .string(['c','m','r','t','p','N','D','I','B','o'])
+                  .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
+                  .alias('j', 'json').default('j', false).describe('j', 'Ausgabe als JSON-String')
+                  .alias('c', 'configpath').default('c', 'config/').describe('c', 'Alternatives Config-Verzeichnis verwenden')
+                  .alias('m', 'mysqlconfig').default('m', 'mysql.json').describe('m', '\tAlternative MySQL-Config verwenden')
+                  .alias('r', 'redmineconfig').default('r', 'redmine.json').describe('r', '\tAlternative Redmine-Config verwenden')
+                  .alias('R', 'getroles').describe('R', 'Rollen ausgeben')
+                  .alias('s', 'semester').describe('s', 'Aktuelle Semesterbezeichnung ausgeben')
+                  .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
+                  .alias('t', 'template').describe('t', 'Projekte und Benutzer anhand einer Template-Datei erstellen')
+                  .alias('p', 'templatepath').default('p', 'templates/').describe('p', '\tAnderes Templateverzeichnis verwenden')
+                  .alias('d', 'debug').default('d', false).describe('d', 'Debug-Modus aktivieren')
+                  .alias('l', 'lock').describe('l', 'Alle aktiven Benutzer - bis auf ars, si und admin - sperren')
+                  .alias('g', 'getusers').describe('g', 'Alle Benutzer ausgeben')
+                  .alias('M', 'mail').default('M', 'fh-wedel.de').describe('M', '\tAlternative Benutzer-Email-Domain festlegen')
+                  .alias('G', 'getprojects').describe('G', 'Alle Projekte ausgeben')
+                  .alias('N', 'project').describe('N', 'Neues Projekt mit Projektname anlegen')
+                  .alias('D', 'description').describe('D', '\tBeschreibung für neues Projekt')
+                  .alias('I', 'identifier').describe('I', '\tID-URL für neues Projekt')
+                  .alias('P', 'parentid').describe('P', '\tID des Elternprojektes für neues Projekt')
+                  .alias('b', 'backup').describe('b', 'Backup der Redmine-Datenbank erstellen')
+                  .alias('B', 'backuppath').default('B', '/backup/db/').describe('B', '\tAlternatives Backup-Verzeichnis verwenden')
+                  .alias('o', 'output').default('o', '<tabellenname><datum>.gz').describe('o', '\tBackup-Zieldateiname');
+
+//Optionen laden
+var argv       = optimist.argv;
+
+// Configurationen laden
+var config     =  {
+                    mysql: json_file.open(argv.configpath+argv.mysqlconfig),
+                    redmine: json_file.open(argv.configpath+argv.redmineconfig)
+                  }
 
 // Redmine mit entsprechender Config
 var redmine = new Redmine({
@@ -29,52 +60,15 @@ var connection = mysql.createConnection({
   debug: argv.debug
 });
 
+/*
+ * Counter für angelegte Gruppen
+ */ 
+var g_groups = 0;
 
 /*
- * Speichert die angelegten Gruppen-IDs (bzw. Projekt-IDs auf niedrigster Ebene)
- * da diese später noch gebraucht werden.
+ * Counter für angelegte Benutzer
  */ 
-var groups = [];
-
-/*
- * Speichert die angelegten Benutzer-IDs da diese später noch gebraucht werden.
- */ 
-var users = [];
-
-/*
- * Hilfsfunktionen zur Verwalltung von users und groups damit keine Verwechselungsgefahr besteht.
- */ 
-function get_group (name) {
-  get_data (groups);
-}
-
-function get_users (name) {
-  get_data (users);
-}
-
-function get_data (data, name) {
-  for (var i in data)
-    if (data[i].name == name)
-      return data[i];
-    return null;
-}
-
-function add_group (name, id) {
-  groups.push({name:name,id:id})
-}
-
-function get_group_length (name, id) {
-  return groups.length;
-}
-
-function add_user (name, id) {
-  users.push({name:name,id:id})
-}
-
-function get_user_length (name, id) {
-  return users.length;
-}
-
+var g_users = 0;
 
 /*
  * Alle Projekte mittels mysql Archivieren (bzw. deaktivieren)
@@ -200,7 +194,7 @@ function get_projects_rest (cb) {
   });
 }
 
-function create_user_rest (login, firstname, lastname, mail, cb) {
+function create_user_rest (login, firstname, lastname, mail, number, cb) {
   var user = {
     login: login,
     firstname: firstname,
@@ -213,7 +207,7 @@ function create_user_rest (login, firstname, lastname, mail, cb) {
     //   console.log("Error: " + data);
     //   return;
     // }
-    cb (data);
+    cb (data, number);
   });
 }
 
@@ -284,6 +278,34 @@ function create_group_rest (name, user_ids, cb) {
   });
 }
 
+function create_project_membership_rest (project_id, user_id, role_ids) {
+  var membership = {
+    user_id: user_id,
+    role_ids: role_ids
+  };
+  redmine.postProjectMembership(membership, function(data) {
+     if (data instanceof Error) {
+      console.log("Error: "+data);
+      return;
+    }
+    cb (data);
+  });
+}
+
+// function create_fh_membership (template, cb) {
+//   for (var k in template.groups)
+//     for (var n in template.groups[k].users)
+//       template.groups[k].id = get_group(template.groups[k].users[n])
+//       for (var i in users) {
+
+//         if (users[i].name == template.groups[k].users[n]) {
+
+//           create_project_membership_rest ()
+//         }
+//       }
+
+
+
 /*
  * Benutzer anhand eines template-json-strings erstellen.
  */ 
@@ -291,12 +313,15 @@ function create_fh_users (template, cb) {
   // Durchläut Benutzer
   for (var i in template.users) {;
     // Benutzer anlegen
-    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, function(data){
-      add_user(data.user.login, data.user.id);
+    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, i, function(data, number){
+      
+      g_users++;
+      template.users[number].id = data.user.id;
       console.log("Benutzer '"+data.user.login+"' mit ID "+data.user.id+" erfolgreich angelegt.");
-      if (get_user_length() == template.users.length) {
+
+      if (g_users == template.users.length) {
         console.log("Alle Benutzer angelegt.");
-        cb (true);
+        cb (template);
       }
     });
   }
@@ -310,6 +335,8 @@ function create_fh_users (template, cb) {
 function create_fh_projects (template, cb) {
   // Erzeugt Hauptproject
   create_project_rest (template.project.name, template.project.description, get_semester()+"-main", template.project.links, null, 0, function(main_project){
+    
+    template.project.id = main_project.project.id
     console.log("Hauptprojekt '"+main_project.project.name+"' mit ID "+main_project.project.id+" erfolgreich erstellt.");
     
     // Durchläut Teilprojekte
@@ -317,6 +344,8 @@ function create_fh_projects (template, cb) {
 
       // Erstellt Teilprojekt
       create_project_rest (template.project.subprojects[k].name, template.project.subprojects[k].description, get_semester()+"-sub"+k, null, main_project, k, function(sub_project, number) {
+        
+        template.project.subprojects[k].id = sub_project.project.id;
         console.log("Unterprojekt '"+sub_project.project.name+"' mit ID "+sub_project.project.id+" erfolgreich erstellt.");
 
         // Durchläuft Teilprojektgruppen
@@ -324,13 +353,15 @@ function create_fh_projects (template, cb) {
 
           // Erstellt Teilprojektgruppe
           create_project_rest (template.project.subprojects[number].groups[n], null, get_semester()+"-"+template.project.subprojects[number].groups[n].toLowerCase().replace(" ", "-"), null, sub_project, n, function(group, number) {
-            add_group(group.project.name, group.project.id);
+            
+            g_groups++
+            template.project.subprojects[number].groups[n].id = group.project.id;
             console.log("Gruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
 
             // Da Ablauf asynchron hier ueberpruefung ob alle Unterprojekte erstellt wurden
-            if(get_group_length() == template.groups.length) {
-              console.log("Alle Gruppen erstellt.")
-              cb (true);
+            if(g_groups == template.groups.length) {
+              console.log("Alle Gruppen erstellt.");
+              cb (template);
             }
           });
         }
@@ -347,10 +378,10 @@ function create_fh_projects (template, cb) {
 function load_template (filename, cb) {
   var template = json_file.open(argv.p+filename);
   console.log("Erstelle Projekte");
-  create_fh_projects (template, function() {
+  create_fh_projects (template, function(template) {
     console.log("Erstelle Benutzer");
     create_fh_users (template, function() {
-      cb(true);
+      cb(template);
     });
   });
 }
@@ -367,12 +398,16 @@ function run() {
   // Projekte ausgeben
   if(argv.getprojects)
     get_projects_rest (function(data){
+      if(argv.json)
+        data = JSON.stringify(data);
       console.log(data);
     });
 
   // Benutzer ausgeben
   if(argv.getusers)
     get_users_rest (function(data){
+      if(argv.json)
+        data = JSON.stringify(data);
       console.log(data);
     });
 
@@ -382,6 +417,8 @@ function run() {
     //   console.log(data);
     // });
     get_roles_mysql (function(rows, fields){
+      if(argv.json)
+        rows = JSON.stringify(rows);
       console.log(rows);
     });
   }
@@ -404,8 +441,8 @@ function run() {
 
   // Template verarbeiten
   if(argv.template)
-    load_template (argv.template, function () {
-
+    load_template (argv.template, function (new_template) {
+      // console.log(new_template);
     });
 
   // Neues Projekt erstellen
