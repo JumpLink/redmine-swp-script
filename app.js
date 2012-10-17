@@ -1,4 +1,5 @@
 #!/usr/bin/nodejs
+
 /*
  * Autor: Pascal Garber <pascal.garber@gmail.com>
  * License: Do whatever you want, but please publish your changes under the same license.
@@ -12,30 +13,30 @@ var moment     = require('moment-range');                                     //
 var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
-                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j'])
+                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R'])
                   .string(['c','m','r','t','p','N','D','I','B','o'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
-                  .alias('j', 'json').default('j', false).describe('j', 'Ausgabe als JSON-String')
+                  .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
                   .alias('c', 'configpath').default('c', 'config/').describe('c', 'Alternatives Config-Verzeichnis verwenden')
-                  .alias('m', 'mysqlconfig').default('m', 'mysql.json').describe('m', '\tAlternative MySQL-Config verwenden')
-                  .alias('r', 'redmineconfig').default('r', 'redmine.json').describe('r', '\tAlternative Redmine-Config verwenden')
+                  .alias('m', 'mysqlconfig').default('m', 'mysql.json').describe('m', 'Alternative MySQL-Config verwenden')
+                  .alias('r', 'redmineconfig').default('r', 'redmine.json').describe('r', 'Alternative Redmine-Config verwenden')
                   .alias('R', 'getroles').describe('R', 'Rollen ausgeben')
                   .alias('s', 'semester').describe('s', 'Aktuelle Semesterbezeichnung ausgeben')
                   .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
                   .alias('t', 'template').describe('t', 'Projekte und Benutzer anhand einer Template-Datei erstellen')
-                  .alias('p', 'templatepath').default('p', 'templates/').describe('p', '\tAnderes Templateverzeichnis verwenden')
+                  .alias('p', 'templatepath').default('p', 'templates/').describe('p', 'Anderes Templateverzeichnis verwenden')
                   .alias('d', 'debug').default('d', false).describe('d', 'Debug-Modus aktivieren')
                   .alias('l', 'lock').describe('l', 'Alle aktiven Benutzer - bis auf ars, si und admin - sperren')
                   .alias('g', 'getusers').describe('g', 'Alle Benutzer ausgeben')
-                  .alias('M', 'mail').default('M', 'fh-wedel.de').describe('M', '\tAlternative Benutzer-Email-Domain festlegen')
+                  .alias('M', 'mail').default('M', 'fh-wedel.de').describe('M', 'Alternative Benutzer-Email-Domain festlegen')
                   .alias('G', 'getprojects').describe('G', 'Alle Projekte ausgeben')
                   .alias('N', 'project').describe('N', 'Neues Projekt mit Projektname anlegen')
-                  .alias('D', 'description').describe('D', '\tBeschreibung für neues Projekt')
-                  .alias('I', 'identifier').describe('I', '\tID-URL für neues Projekt')
-                  .alias('P', 'parentid').describe('P', '\tID des Elternprojektes für neues Projekt')
+                  .alias('D', 'description').describe('D', 'Beschreibung für neues Projekt')
+                  .alias('I', 'identifier').describe('I', 'ID-URL für neues Projekt')
+                  .alias('P', 'parentid').describe('P', 'ID des Elternprojektes für neues Projekt')
                   .alias('b', 'backup').describe('b', 'Backup der Redmine-Datenbank erstellen')
-                  .alias('B', 'backuppath').default('B', '/backup/db/').describe('B', '\tAlternatives Backup-Verzeichnis verwenden')
-                  .alias('o', 'output').default('o', '<table><date>.gz').describe('o', '\tBackup-Zieldateiname');
+                  .alias('B', 'backuppath').default('B', '/backup/db/').describe('B', 'Alternatives Backup-Verzeichnis verwenden')
+                  .alias('o', 'output').default('o', '<table>_<date>.gz').describe('o', 'Backup-Zieldateiname');
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -105,7 +106,8 @@ function lock_all_users_mysql () {
 function backup_database_mysql () {
   fs.exists('/usr/bin/mysqldump', function (exists) {
     if(exists) {
-      var command = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+argv.backpath+argv.output;
+      var command = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+argv.backuppath+argv.output.replace("<table>", config.mysql.name).replace("<date>","`date +%F_%T`");
+      console.log(command);
       exec(command, function (error, stdout, stderr) { 
         console.log(stdout);
       });
@@ -394,7 +396,6 @@ function create_fh_membership (template, cb) {
   }
 };
 
-
 /*
  * Benutzer anhand eines template-json-strings erstellen.
  */ 
@@ -481,6 +482,9 @@ function load_template (filename, cb) {
   });
 }
 
+/*
+ * Speichert ein neues Template als Datei.
+ */
 function save_template (template, filename, cb) {
   json_file.save(argv.templatepath+filename, template, function() {
     cb();
@@ -488,7 +492,7 @@ function save_template (template, filename, cb) {
 }
 
 /*
- * Anhand übergebene Option Skript ausführen
+ * Anhand übergebene Option Skript ausführen.
  */
 function run() {
 
@@ -500,7 +504,7 @@ function run() {
   if(argv.getprojects)
     get_projects_rest (function(data){
       if(argv.json)
-        data = JSON.stringify(data);
+        data = JSON.stringify(data, null, 2);
       console.log(data);
     });
 
@@ -508,18 +512,15 @@ function run() {
   if(argv.getusers)
     get_users_rest (function(data){
       if(argv.json)
-        data = JSON.stringify(data);
+        data = JSON.stringify(data, null, 2);
       console.log(data);
     });
 
   // Rollen ausgeben
   if(argv.getroles) {
-    // get_roles_rest (function(data){ // FIXME
-    //   console.log(data);
-    // });
     get_roles_mysql (function(rows, fields){
       if(argv.json)
-        rows = JSON.stringify(rows);
+        rows = JSON.stringify(rows, null, 2);
       console.log(rows);
     });
   }
