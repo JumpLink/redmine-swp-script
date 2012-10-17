@@ -77,39 +77,48 @@
   [
     {
       "name": "swp01",
-      "users": ["minf1111", "inf2222"]
+      "users": ["minf1111", "inf2222"],
+      "type": "admin"
     },
     {
       "name": "swp02",
-      "users": ["inf3333"]
+      "users": ["inf3333"],
+      "type": "developer"
     },
     {
       "name": "swp03",
-      "users": ["inf4444", "inf5555", "inf6666"]
+      "users": ["inf4444", "inf5555", "inf6666"],
+      "type": "developer"
     },
     {
       "name": "swp04",
-      "users": ["inf6666"]
+      "users": ["inf6666"],
+      "type": "developer"
     },
     {
       "name": "swp05",
-      "users": ["inf6666"]
+      "users": ["inf6666"],
+      "type": "developer"
     },
     {
       "name": "swp06",
-      "users": ["inf6666"]
+      "users": ["inf6666"],
+      "type": "developer"
     },
     {
       "name": "swp07",
-      "users": ["inf6666"]
+      "users": ["inf6666"],
+      "type": "developer"
     },
     {
       "name": "swp08",
-      "users": ["inf6666"]
+      "users": ["inf6666"],
+      "type": "developer"
     },
     {
       "name": "swp09",
-      "users": ["inf6666"]
+      "users": ["inf6666"],
+      "type": "developer"
     }
   ]
 }

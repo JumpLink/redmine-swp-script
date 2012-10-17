@@ -354,6 +354,10 @@ function create_membership_mysql (project_id, user_id, role_id, number, cb) {
   });
 };
 
+/*
+ * Erstellt ein neues Projektmitglied und weist diesem Rechte zu mittes Rest-API
+ * siehe auch: create_membership_rest
+ */ 
 function add_repository_mysql (project_id, url, login, password, root_url, type, cb) {
   var insert = "INSERT INTO "+config.mysql.name+".repositories(project_id, url, login, password, root_url, type)";
   var values = "VALUES ("+project_id+", '"+url+"', '"+login+"', '"+password+"', '"+root_url+"', '"+type+"')";
