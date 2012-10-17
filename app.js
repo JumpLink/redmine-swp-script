@@ -71,6 +71,11 @@ var g_groups = 0;
 var g_users = 0;
 
 /*
+ * Counter für angelegte Benutzer
+ */ 
+var g_roles = 0;
+
+/*
  * Alle Projekte mittels mysql Archivieren (bzw. deaktivieren)
  * status: 9 = archiviert; 1 = aktiviert
  */ 
@@ -175,7 +180,7 @@ function create_project_rest (name, description, identifier, links, parent, numb
   redmine.postProject(project, function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      return;
+      throw new Error('data');
     }
     cb (data, number);
   });
@@ -188,7 +193,7 @@ function get_projects_rest (cb) {
   redmine.getProjects(function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      return;
+      throw new Error('data');
     }
     cb (data);
   });
@@ -218,7 +223,7 @@ function get_users_rest (cb) {
   redmine.getUsers(function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      return;
+      throw new Error('data');
     }
     cb (data);
   });
@@ -231,7 +236,7 @@ function get_roles_rest (cb) {
   redmine.getRoles(function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      return;
+      throw new Error('data');
     }
     cb (data);
   });
@@ -255,11 +260,11 @@ function get_groups_rest (cb) {
   redmine.getGroups({}, function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      return;
+      throw new Error('data');
     }
     cb (data);
   });
-}
+};
 
 /*
  * Gruppe über die Rest-API erstellen FIXME
@@ -272,38 +277,101 @@ function create_group_rest (name, user_ids, cb) {
   redmine.postGroup(group, function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      return;
+      throw new Error('data');
     }
     cb (data);
   });
-}
+};
 
-function create_project_membership_rest (project_id, user_id, role_ids) {
+/*
+ * FIXME
+ */ 
+function create_membership_rest (project_id, user_id, role_ids, number, cb) {
   var membership = {
     user_id: user_id,
     role_ids: role_ids
   };
-  redmine.postProjectMembership(membership, function(data) {
+  redmine.postProjectMembership(project_id, membership, function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      return;
+      throw new Error('data');
     }
-    cb (data);
+    cb (data, number);
+  });
+};
+
+function create_member_mysql (project_id, user_id, cb) {
+  var query = "INSERT INTO "+config.mysql.name+".members(user_id, project_id, created_on) VALUES ("+user_id+", "+project_id+", NOW() )";
+  
+  connection.query(query, function(err, result) {
+    if (err) throw err;
+    if (argv.debug)
+      console.log("Member mit neuer ID "+result.insertId+" , der Benutzer-ID "+user_id+" und der Projekt-ID "+project_id+" angelegt.");
+    cb(result);
   });
 }
 
-// function create_fh_membership (template, cb) {
-//   for (var k in template.groups)
-//     for (var n in template.groups[k].users)
-//       template.groups[k].id = get_group(template.groups[k].users[n])
-//       for (var i in users) {
+function create_role_mysql (member_id, role_id, cb) {
+  var query = "INSERT INTO "+config.mysql.name+".member_roles(member_id, role_id) VALUES ("+member_id+", "+role_id+" )";
 
-//         if (users[i].name == template.groups[k].users[n]) {
+  connection.query(query, function(err, result) {
+    if (err) throw err;
+    if (argv.debug)
+      console.log("Rolle mit neuer ID "+result.insertId+" , der Member-ID "+member_id+" und der Rollen-ID "+role_id+" angelegt.");
+    cb(result);
+  });
+}
 
-//           create_project_membership_rest ()
-//         }
-//       }
+/*
+ * siehe auch: create_membership_rest
+ */ 
+function create_membership_mysql (project_id, user_id, role_id, number, cb) {
 
+  create_member_mysql (project_id, user_id, function (member_result) {
+    create_role_mysql (member_result.insertId, role_id, function (role_result) {
+      cb (member_result, role_result, project_id, user_id, role_id, number);
+    });
+  });
+};
+
+function generate_group_identifier (group_name) {
+  return get_semester()+"-"+group_name.toLowerCase().replace(" ", "-");
+};
+
+  // { id: 3, name: 'Administrator' },
+  // { id: 4, name: 'Entwickler' },
+function create_fh_membership (template, cb) {
+  template.memberships = [];
+  for (var k in template.groups) {
+    console.log("Erzeuge Membership für "+template.groups[k].name);
+    for (var i in template.users) {
+      var project_id = template.groups[k].id;
+      var user_id = template.users[i].id;
+      var role_id = 4;
+      // Wenn Name in Gruppe enthalten dann Administratorrechte zuweisen
+      for (var n in template.groups[k].users) {
+        if (template.users[i].student_id == template.groups[k].users[n]) {
+          role_id = 3;
+        }
+      }
+      create_membership_mysql (project_id, user_id, role_id, k, function(member_result, role_result, project_id, user_id, role_id, number) {
+        // Speichere neue IDs
+        template.memberships[g_roles] = {
+          member_id: member_result.insertId,
+          id: role_result.insertId,
+          role_id: role_id,
+          project_id: project_id,
+          user_id: user_id
+        }
+        g_roles++;
+        if (template.groups.length*template.users.length == g_roles) {
+          console.log("Alle Memberships angelegt.");
+          cb (template);
+        }
+      });
+    }
+  }
+};
 
 
 /*
@@ -311,7 +379,7 @@ function create_project_membership_rest (project_id, user_id, role_ids) {
  */ 
 function create_fh_users (template, cb) {
   // Durchläut Benutzer
-  for (var i in template.users) {;
+  for (var i in template.users) {
     // Benutzer anlegen
     create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, i, function(data, number){
       
@@ -325,7 +393,7 @@ function create_fh_users (template, cb) {
       }
     });
   }
-}
+};
 
 /*
  * Projekte anhand eines template-json-strings laden.
@@ -352,10 +420,13 @@ function create_fh_projects (template, cb) {
         for (var n in template.project.subprojects[number].groups) {
 
           // Erstellt Teilprojektgruppe
-          create_project_rest (template.project.subprojects[number].groups[n], null, get_semester()+"-"+template.project.subprojects[number].groups[n].toLowerCase().replace(" ", "-"), null, sub_project, n, function(group, number) {
+          create_project_rest (template.project.subprojects[number].groups[n], null, generate_group_identifier(template.project.subprojects[number].groups[n]), null, sub_project, n, function(group, number) {
             
             g_groups++
-            template.project.subprojects[number].groups[n].id = group.project.id;
+            // Neue ID speichern
+            for (var x in template.groups)
+              if (template.groups[x].name == group.project.name)
+                template.groups[x].id = group.project.id;
             console.log("Gruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
 
             // Da Ablauf asynchron hier ueberpruefung ob alle Unterprojekte erstellt wurden
@@ -376,13 +447,22 @@ function create_fh_projects (template, cb) {
  * @param filename: String des Dateinamens der Datei die aus ./templates/ geladen werden soll.
  */ 
 function load_template (filename, cb) {
-  var template = json_file.open(argv.p+filename);
+  var template = json_file.open(argv.templatepath+filename);
   console.log("Erstelle Projekte");
   create_fh_projects (template, function(template) {
     console.log("Erstelle Benutzer");
-    create_fh_users (template, function() {
-      cb(template);
+    create_fh_users (template, function(template) {
+      console.log("Erstelle Memberships");
+      create_fh_membership (template, function(template) {
+        cb(template);
+      });
     });
+  });
+}
+
+function save_template (template, filename, cb) {
+  json_file.save(argv.templatepath+filename, template, function() {
+    cb();
   });
 }
 
@@ -413,7 +493,7 @@ function run() {
 
   // Rollen ausgeben
   if(argv.getroles) {
-    // get_roles_rest (function(data){ FIXME
+    // get_roles_rest (function(data){ // FIXME
     //   console.log(data);
     // });
     get_roles_mysql (function(rows, fields){
@@ -442,7 +522,9 @@ function run() {
   // Template verarbeiten
   if(argv.template)
     load_template (argv.template, function (new_template) {
-      // console.log(new_template);
+      save_template(new_template, "new_"+argv.template, function () {
+        process.exit(0); // WORKAROUND
+      });
     });
 
   // Neues Projekt erstellen
@@ -460,10 +542,3 @@ function run() {
 }
     
 run();
-
-//var template = json_file.open(argv.p+"lua.json");
-// create_fh_users (template);
-//get_groups_rest();
-// create_group_rest("test", [1,50], function (data) {
-//   console.log(data);
-// })

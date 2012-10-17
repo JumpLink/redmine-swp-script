@@ -9,6 +9,7 @@ lib-cov
 *.json
 *.sublime-project
 *.sublime-workspace
+templates/new_*
 
 pids
 logs

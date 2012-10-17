@@ -1,7 +1,7 @@
 var fs = require('fs');
 
-function save(filename, write_string) {
-    write_string = JSON.stringify(write_string, null, 2)
+function save(filename, write_string, cb) {
+    write_string = JSON.stringify(write_string, null, 2);
 
     fs.writeFile(filename, write_string, function(err) {
         if(err) {
@@ -9,6 +9,7 @@ function save(filename, write_string) {
             process.exit(1);
         } else {
             console.log("The file was saved!");
+            cb();
         }
     });
 }
