@@ -14,12 +14,13 @@ var json_file  = require(__dirname+'/json.js');                               //
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
                   .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R'])
-                  .string(['c','m','r','t','p','N','D','I','B','o'])
+                  .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
                   .alias('c', 'configpath').default('c', 'config/').describe('c', 'Alternatives Config-Verzeichnis verwenden')
                   .alias('m', 'mysqlconfig').default('m', 'mysql.json').describe('m', 'Alternative MySQL-Config verwenden')
                   .alias('r', 'redmineconfig').default('r', 'redmine.json').describe('r', 'Alternative Redmine-Config verwenden')
+                  .alias('S', 'svnconfig').default('S', 'svn.json').describe('S', 'Alternative SVN-Config verwenden')
                   .alias('R', 'getroles').describe('R', 'Rollen ausgeben')
                   .alias('s', 'semester').describe('s', 'Aktuelle Semesterbezeichnung ausgeben')
                   .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
@@ -44,7 +45,8 @@ var argv       = optimist.argv;
 // Configurationen laden
 var config     =  {
                     mysql: json_file.open(argv.configpath+argv.mysqlconfig),
-                    redmine: json_file.open(argv.configpath+argv.redmineconfig)
+                    redmine: json_file.open(argv.configpath+argv.redmineconfig),
+                    svn: json_file.open(argv.configpath+argv.svnconfig)
                   }
 
 // Redmine mit entsprechender Config
@@ -352,6 +354,19 @@ function create_membership_mysql (project_id, user_id, role_id, number, cb) {
   });
 };
 
+function add_repository_mysql (project_id, url, login, password, root_url, type, cb) {
+  var insert = "INSERT INTO "+config.mysql.name+".repositories(project_id, url, login, password, root_url, type)";
+  var values = "VALUES ("+project_id+", '"+url+"', '"+login+"', '"+password+"', '"+root_url+"', '"+type+"')";
+  var query = insert+" "+values;
+
+  connection.query(query, function(err, result) {
+    if (err) throw err;
+    if (argv.debug)
+      console.log("Repository mit ID "+result.insertId+" für Projekt-ID "+project_id+" hinzugefügt.");
+    cb(result);
+  });
+};
+
 /*
  * Erzeugt den identifier für eine Gruppe anhand des Semesters und des Gruppennamens.
  */ 
@@ -444,18 +459,22 @@ function create_fh_projects (template, cb) {
           // Erstellt Teilprojektgruppe
           create_project_rest (template.project.subprojects[number].groups[n], null, generate_group_identifier(template.project.subprojects[number].groups[n]), null, sub_project, n, function(group, number) {
             
-            g_groups++
-            // Neue ID speichern
-            for (var x in template.groups)
-              if (template.groups[x].name == group.project.name)
-                template.groups[x].id = group.project.id;
-            console.log("Gruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
+            add_repository_mysql (group.project.id, config.svn.url+group.project.name, config.svn.user, config.svn.password, config.svn.url+group.project.name, "Subversion", function() {
 
-            // Da Ablauf asynchron hier ueberpruefung ob alle Unterprojekte erstellt wurden
-            if(g_groups == template.groups.length) {
-              console.log("Alle Gruppen erstellt.");
-              cb (template);
-            }
+              g_groups++
+              // Neue ID speichern
+              for (var x in template.groups)
+                if (template.groups[x].name == group.project.name)
+                  template.groups[x].id = group.project.id;
+              console.log("Gruppe '"+group.project.name+"' mit ID "+group.project.id+" erfolgreich erstellt.");
+
+              // Da Ablauf asynchron hier ueberpruefung ob alle Unterprojekte erstellt wurden
+              if(g_groups == template.groups.length) {
+                console.log("Alle Gruppen erstellt.");
+                cb (template);
+              }
+
+            })
           });
         }
       });
