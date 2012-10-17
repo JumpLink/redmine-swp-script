@@ -1,6 +1,6 @@
 #!/usr/bin/nodejs
 /*
- * Autor: Pascal Garber
+ * Autor: Pascal Garber <pascal.garber@gmail.com>
  * License: Do whatever you want, but please publish your changes under the same license.
  */
 
@@ -35,7 +35,7 @@ var optimist   = require('optimist')                                          //
                   .alias('P', 'parentid').describe('P', '\tID des Elternprojektes für neues Projekt')
                   .alias('b', 'backup').describe('b', 'Backup der Redmine-Datenbank erstellen')
                   .alias('B', 'backuppath').default('B', '/backup/db/').describe('B', '\tAlternatives Backup-Verzeichnis verwenden')
-                  .alias('o', 'output').default('o', '<tabellenname><datum>.gz').describe('o', '\tBackup-Zieldateiname');
+                  .alias('o', 'output').default('o', '<table><date>.gz').describe('o', '\tBackup-Zieldateiname');
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -100,7 +100,7 @@ function lock_all_users_mysql () {
 
 /*
  * Backup der Redmine-Datenbank erstellen
- * Bedingung: mysqldump muss instaliiert sein.
+ * Bedingung: mysqldump muss installiert sein.
  */ 
 function backup_database_mysql () {
   fs.exists('/usr/bin/mysqldump', function (exists) {
@@ -187,7 +187,7 @@ function create_project_rest (name, description, identifier, links, parent, numb
 }
 
 /*
- * Alle Projekte im JSON-Format ausgeben.
+ * Alle Projekte an cb übergeben.
  */ 
 function get_projects_rest (cb) {
   redmine.getProjects(function(data) {
@@ -199,6 +199,9 @@ function get_projects_rest (cb) {
   });
 }
 
+/*
+ * Alle Projekte an cb übergeben.
+ */
 function create_user_rest (login, firstname, lastname, mail, number, cb) {
   var user = {
     login: login,
@@ -217,7 +220,7 @@ function create_user_rest (login, firstname, lastname, mail, number, cb) {
 }
 
 /*
- * Alle Benutzer im JSON-Format an cb übergeben.
+ * Alle Benutzer an cb übergeben.
  */ 
 function get_users_rest (cb) {
   redmine.getUsers(function(data) {
@@ -230,7 +233,9 @@ function get_users_rest (cb) {
 }
 
 /*
- * Alle Rollen im JSON-Format an cb übergeben. FIXME
+ * FIXME funktioniert nicht
+ * Alle Rollen im JSON-Format an cb übergeben.
+ * Siehe auch: get_roles_mysql
  */ 
 function get_roles_rest (cb) {
   redmine.getRoles(function(data) {
@@ -244,6 +249,7 @@ function get_roles_rest (cb) {
 
 /*
  * Alle Rollen als MySQL-Ausgabe ausgeben.
+ * Siehe auch: get_roles_rest
  */ 
 function get_roles_mysql (cb) {
   connection.query('select id,name from '+config.mysql.name+'.roles', function(err, rows, fields) {
@@ -254,7 +260,8 @@ function get_roles_mysql (cb) {
 }
 
 /*
- * Alle Gruppen im JSON-Format ausgeben. FIXME
+ * FIXME funktioniert nicht
+ * Alle Gruppen an Callback übergeben mittels Rest-API
  */ 
 function get_groups_rest (cb) {
   redmine.getGroups({}, function(data) {
@@ -267,7 +274,8 @@ function get_groups_rest (cb) {
 };
 
 /*
- * Gruppe über die Rest-API erstellen FIXME
+ * FIXME funktioniert nicht
+ * Gruppe über die Rest-API erstellen
  */ 
 function create_group_rest (name, user_ids, cb) {
   var group = {
@@ -284,7 +292,8 @@ function create_group_rest (name, user_ids, cb) {
 };
 
 /*
- * FIXME
+ * FIXME funktioniert nicht
+ * Siehe auch: create_membership_mysql
  */ 
 function create_membership_rest (project_id, user_id, role_ids, number, cb) {
   var membership = {
@@ -300,6 +309,9 @@ function create_membership_rest (project_id, user_id, role_ids, number, cb) {
   });
 };
 
+/*
+ * Erstellt ein neues Projektmitglied mittels MySQL
+ */
 function create_member_mysql (project_id, user_id, cb) {
   var query = "INSERT INTO "+config.mysql.name+".members(user_id, project_id, created_on) VALUES ("+user_id+", "+project_id+", NOW() )";
   
@@ -311,6 +323,9 @@ function create_member_mysql (project_id, user_id, cb) {
   });
 }
 
+/*
+ * Erstellt einem Projektmitglied Rechte mittels MySQL
+ */
 function create_role_mysql (member_id, role_id, cb) {
   var query = "INSERT INTO "+config.mysql.name+".member_roles(member_id, role_id) VALUES ("+member_id+", "+role_id+" )";
 
@@ -323,6 +338,7 @@ function create_role_mysql (member_id, role_id, cb) {
 }
 
 /*
+ * Erstellt ein neues Projektmitglied und weist diesem Rechte zu mittes Rest-API
  * siehe auch: create_membership_rest
  */ 
 function create_membership_mysql (project_id, user_id, role_id, number, cb) {
@@ -334,12 +350,17 @@ function create_membership_mysql (project_id, user_id, role_id, number, cb) {
   });
 };
 
+/*
+ * Erzeugt den identifier für eine Gruppe anhand des Semesters und des Gruppennamens.
+ */ 
 function generate_group_identifier (group_name) {
   return get_semester()+"-"+group_name.toLowerCase().replace(" ", "-");
 };
 
-  // { id: 3, name: 'Administrator' },
-  // { id: 4, name: 'Entwickler' },
+/*
+ * id 3 = Administrator
+ * id 4 = Entwickler
+ */
 function create_fh_membership (template, cb) {
   template.memberships = [];
   for (var k in template.groups) {
