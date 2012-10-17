@@ -1,6 +1,9 @@
 redmine-swp-script
 ==================
 
+Skript für automatisches Anlegen von Benutzern und Projekten.
+Das Skript ist ausgelegt für das Praktikum [Softwareprojekt](http://www.fh-wedel.de/~si/praktika/SoftwarePraktikum/index.html) der [Fachhochschule Wedel](http://www.fh-wedel.de/), diese Notwendigkeit bestand, da regelmäßig aufwändig neue Projekte und Benutzer angelegt werden wüssen. 
+
 Templates
 ---------
 Ein Template ist ein Json-Format und beinhaltet Projekt, Gruppen und Benutzerinformationen welche dann automatisiert in Redmine eingepflegt werden.
