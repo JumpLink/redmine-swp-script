@@ -4,6 +4,23 @@ redmine-swp-script
 Skript für automatisches Anlegen von Benutzern und Projekten unter [Redmine](http://www.redmine.org/).
 Das Skript ist ausgelegt für das Praktikum [Softwareprojekt](http://www.fh-wedel.de/~si/praktika/SoftwarePraktikum/index.html) der [Fachhochschule Wedel](http://www.fh-wedel.de/), diese Notwendigkeit bestand, da regelmäßig aufwändig neue Projekte und Benutzer angelegt werden wüssen. 
 
+Installation
+============
+```
+sudo apt-add-repository ppa:chris-lea/node.js
+sudo apt-get install nodejs
+git clone git://github.com/JumpLink/redmine-swp-script.git
+npm install
+```
+Npm installiert dabei automatisch die Abhängigkeiten nach, dies sind:
+* optimist in Version 0.3.5
+* mysql in Version 2.0.0-alpha3
+* moment-range in Version 0.1.1
+* restler in Version 2.0.1 und
+und meinen Fork von [node-redmine](https://github.com/JumpLink/node-redmine).
+
+
+
 Technisches
 ===========
 
