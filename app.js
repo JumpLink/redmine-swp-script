@@ -26,7 +26,7 @@ var optimist   = require('optimist')                                          //
                   .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
                   .alias('t', 'template').describe('t', 'Projekte und Benutzer anhand einer Template-Datei erstellen')
                   .alias('p', 'templatepath').default('p', 'templates/').describe('p', 'Anderes Templateverzeichnis verwenden')
-                  .alias('T', 'removetemp').describe('T', 'Benutzer/Projekte aus Backup-Template-Datei löschen')
+                  .alias('T', 'removetemp').describe('T', 'Benutzer/Projekte mit Hilfe der Backup-Template-Datei löschen')
                   .alias('d', 'debug').default('d', false).describe('d', 'Debug-Modus aktivieren')
                   .alias('l', 'lock').describe('l', 'Alle aktiven Benutzer - bis auf ars, si und admin - sperren')
                   .alias('g', 'getusers').describe('g', 'Alle Benutzer ausgeben')
@@ -40,7 +40,8 @@ var optimist   = require('optimist')                                          //
                   .alias('B', 'backuppath').default('B', '/backup/').describe('B', 'Alternatives Backup-Verzeichnis verwenden')
                   .alias('k', 'restoredb').describe('k', 'Datenbank wiederherstellen')
                   .alias('K', 'restorefiles').describe('K', 'Anhänge wiederherstellen')
-                  .alias('o', 'output').default('o', '<table>_<date>.gz').describe('o', 'Backup-Zieldateiname');
+                  .alias('o', 'backupname').default('o', '<table>_<date>.gz').describe('o', 'Backup-Zieldateiname')
+                  .alias('Q', 'backupfiles').describe('Q', 'Backup der Dateianhänge erstellen');
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -116,7 +117,9 @@ function stop_redmine () {
 function backup_database_mysql () {
   fs.exists('/usr/bin/mysqldump', function (exists) {
     if(exists) {
-      var command = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+argv.backuppath+"db/"+argv.output.replace("<table>", config.mysql.name).replace("<date>","`date +%F_%T`");
+      var mkdir = "mkdir -p "+__dirname+argv.backuppath+"db/ ;";
+      var backup = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+argv.backuppath+"db/"+argv.backupname.replace("<table>", config.mysql.name).replace("<date>","`date +%F_%T`");
+      var command = mkdir+" "+backup+" ;";
       if(argv.debug) console.log(command);
       exec(command, function (error, stdout, stderr) { 
         console.log(stdout);
@@ -143,6 +146,7 @@ function restore_database_mysql (filename) {
 
 /*
  * Backup der Attachments erstellen.
+ * --backupfiles
  */
 function backup_attachments () {
   var mkdir = "mkdir -p "+__dirname+argv.backuppath+"files/ ;";
@@ -720,7 +724,7 @@ function save_template (filename, cb) {
 function run() {
 
   // Projekte ausgeben
-  if(argv.getprojects)
+  if (argv.getprojects)
     get_projects_rest (function(data){
       if(argv.json)
         data = JSON.stringify(data, null, 2);
@@ -728,7 +732,7 @@ function run() {
     });
 
   // Benutzer ausgeben
-  if(argv.getusers)
+  if (argv.getusers)
     get_users_rest (function(data){
       if(argv.json)
         data = JSON.stringify(data, null, 2);
@@ -736,7 +740,7 @@ function run() {
     });
 
   // Rollen ausgeben
-  if(argv.getroles) {
+  if (argv.getroles) {
     get_roles_mysql (function(rows, fields){
       if(argv.json)
         rows = JSON.stringify(rows, null, 2);
@@ -745,23 +749,23 @@ function run() {
   }
 
   // Backup erstellen
-  if(argv.backup)
+  if (argv.backup)
     backup_database_mysql ();
 
   // User sperren
-  if(argv.lock)
+  if (argv.lock)
     lock_all_users_mysql ();
 
   // Projekte archivieren
-  if(argv.archive)
+  if (argv.archive)
     archive_all_projects_mysql ();
 
   // Semesterbezeichnung ausgeben
-  if(argv.semester)
+  if (argv.semester)
     console.log(get_semester ());
 
   // Template verarbeiten
-  if(argv.template)
+  if (argv.template)
     load_template (argv.template, function () {
       save_template("backup_"+argv.template, function () {
         process.exit(0); // WORKAROUND
@@ -769,7 +773,7 @@ function run() {
     });
 
   // Neues Projekt erstellen
-  if(argv.project) {
+  if (argv.project) {
     if(!argv.identifier) {
       optimist.showHelp();
       console.log("\nIdentifier nicht angegeben!");
@@ -782,13 +786,18 @@ function run() {
   }
 
   // Projekte und Benutzer löschen
-  if(argv.removetemp)
+  if (argv.removetemp)
     remove_from_template (argv.removetemp, function() {
 
     })
 
+  // Datenbank wiederherstellen
   if (argv.restoredb)
     restore_database_mysql(argv.restoredb);
+
+  // Dateianhänge sichern
+  if (argv.backupfiles)
+    backup_attachments ();
 }
     
 run();

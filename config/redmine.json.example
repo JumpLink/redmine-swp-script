@@ -1,4 +1,5 @@
 {
 	"host": "http://redmine.fh-wedel.de",
-	"apiKey": "irgendwas!!!!1111eins!eins!!eins"
+	"apiKey": "irgendwas!!!!1111eins!eins!!eins",
+	"path": "/var/www/redmine-1.2"
 }

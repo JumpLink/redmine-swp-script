@@ -1,5 +1,5 @@
 {
-	"host": "redmine.fh-wedel.de",
+	"host": "localhost",
 	"user": "redmine",
 	"password": "irgendwas",
 	"name": "redmine"
