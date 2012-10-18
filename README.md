@@ -2,7 +2,7 @@ redmine-swp-script
 ==================
 
 Skript für automatisches Anlegen von Benutzern und Projekten unter [Redmine](http://www.redmine.org/).
-Das Skript ist ausgelegt für das Praktikum [Softwareprojekt](http://www.fh-wedel.de/~si/praktika/SoftwarePraktikum/index.html) der [Fachhochschule Wedel](http://www.fh-wedel.de/), diese Notwendigkeit bestand, da regelmäßig aufwändig neue Projekte und Benutzer angelegt werden wüssen. 
+Das Skript ist ausgelegt für das Praktikum [Softwareprojekt](http://www.fh-wedel.de/~si/praktika/SoftwarePraktikum/index.html) der [Fachhochschule Wedel](http://www.fh-wedel.de/), diese Notwendigkeit bestand, da regelmäßig aufwändig neue Projekte und Benutzer angelegt werden müssen. 
 
 Installation
 ============
@@ -15,7 +15,7 @@ Getestet mit
 ```
 sudo apt-add-repository ppa:chris-lea/node.js
 sudo apt-get update
-sudo apt-get install nodejs git-core
+sudo apt-get install nodejs nodejs-dev npm git-core
 git clone git://github.com/JumpLink/redmine-swp-script.git
 npm install
 ```
