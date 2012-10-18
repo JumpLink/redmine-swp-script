@@ -26,17 +26,26 @@ Das Hauptprojekt hat die folgenden Atribute:
 * project.subprojects: [...]
 
 #### project.subprojects
------------
 Das subprojects-Attribut ist ein Array mit Unterprojekten und hat unter anderem das Attribut
 * project.subprojects[#].groups: [...]
 
 ##### project.subprojects[#].groups
----------------------
 Diese Gruppen werden unter Redmine als Projekt behandelt, stellen im Software-Projekt aber die Programmiergruppen da.
 
 ### users
+* users = [...]
+* users[#].student_id: "..."
+* users[#].lastname: "..."
+* users[#].firstname: "..."
 
 ### groups
+* groups = [...]
+* groups[#].name: "..."
+* groups[#].users: [...]
+* groups[#].type: "..."
+
+#### groups[#].users
+* groups[#].users: [...]
 
 ### Valide
 
