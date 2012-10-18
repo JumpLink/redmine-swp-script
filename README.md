@@ -6,6 +6,12 @@ Das Skript ist ausgelegt für das Praktikum [Softwareprojekt](http://www.fh-wede
 
 Installation
 ============
+
+Getestet mit 
+* node.js Version v0.8.11 und v0.8.12
+* Ubuntu in Version 10.04.4 LTS und 12.04.1 LTS
+* Redmine in Version 1.2.3.stable.10619
+
 ```
 sudo apt-add-repository ppa:chris-lea/node.js
 sudo apt-get update
@@ -39,6 +45,39 @@ Wenn das Skript nicht auf dem selben Server ausgeführt werden soll auf dem Redm
 * mittels MySQL die Rechte der Datenbank anpassen:
 ```
 grant all on redmine.* to 'redmine'@'%' IDENTIFIED BY 'Equ7Aise';
+```
+
+Bedienungsanleitung
+===================
+```
+./app.js --template lua.json.example
+```
+Erzeugt Benutzer, Gruppen und Rechte entsprechend der Template-Datei lua.json.example.
+Es wird dabei eine backup_lua.json.example erstellt mit zusätzlichen Informationen wie der IDs in der Datenbank.
+
+
+Mit Hilfe dieser Backup-Template-Datei kann der Vorgang wieder rückgänig gemacht werden:
+```
+./app.js --removetemp backup_lua.json.example
+```
+
+Ein Backup der Datenbank nach backup/db/ kann wie folgt angefertigt werden:
+```
+./app.js --backup 
+```
+
+Und auch wiederhergestellt werden:
+```
+./app.js --restoredb [Backupdateiname]
+```
+
+Für eine ausführlichere Ausgabe kann der Debug-Modus aktiviert werden:
+
+```
+./app.js --debug --template lua.json.example
+./app.js --debug --removetemp backup_lua.json.example
+./app.js --debug --backup
+usw..
 ```
 
 Technisches
