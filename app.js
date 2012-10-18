@@ -77,6 +77,9 @@ var g_groups = 0;
  */ 
 var g_users = 0;
 
+/*
+ * Für geparste Template, wird bei der verarbeitung mit neuen Daten gefüllt und als Textdatei gespeichert. 
+ */ 
 var template;
 
 /*
@@ -329,7 +332,7 @@ function create_member_mysql (project_id, user_id, cb) {
 }
 
 /*
- * Erstellt einem Projektmitglied Rechte mittels MySQL
+ * Erteilt einem Projektmitglied Rechte mittels MySQL
  */
 function create_role_mysql (member_id, role_id, cb) {
   var query = "INSERT INTO "+config.mysql.name+".member_roles(member_id, role_id) VALUES ("+member_id+", "+role_id+" )";
@@ -343,7 +346,7 @@ function create_role_mysql (member_id, role_id, cb) {
 }
 
 /*
- * Erstellt ein neues Projektmitglied und weist diesem Rechte zu mittes Rest-API
+ * Erstellt ein neues Projektmitglied und weist diesem Rechte mittes Rest-API zu.
  * siehe auch: create_membership_rest
  */ 
 function create_membership_mysql (project_id, user_id, role_id, cb) {
@@ -370,7 +373,50 @@ function add_repository_mysql (project_id, url, login, password, root_url, type,
       console.log("Repository mit ID "+result.insertId+" für Projekt-ID "+project_id+" hinzugefügt.");
     cb(result);
   });
-};
+}
+
+/*
+ * Übergibt die Gruppe (Template) an Callback in der der Benutzer ist.
+ */ 
+function get_user_group_template (user_name, cb) {
+  if(argv.debug)
+    console.log("get_user_group_template ("+user_name+", ...)");
+  if (!template)
+    throw new Error("Template nicht geladen!");
+  for (var i in template.groups) {
+    for (var k in template.groups[i].users) {
+      if(user_name == template.groups[i].users[k]) {
+        cb(template.groups[i]);
+        return; // Hier kann abgebrochen werden da für gewöhnlich ein Student nur in einer Gruppe ist.
+      }
+    }
+  }
+}
+
+/*
+ * Übergibt den Gruppentyp (Template) an Callback in der der Benutzer ist.
+ */ 
+function get_user_type_template (user_name, number, cb) {
+  get_user_group_template (user_name, function(group) {
+    cb(group.type, number);
+  })
+}
+
+/*
+ * Speichert den Gruppentyp des Benutzers zum Benutzer in die Template
+ */ 
+function save_user_types_template (cb) {
+  for (var i in template.users) {
+    get_user_type_template(template.users[i].student_id, i, function (type, number) {
+      template.users[number].type = type;
+      if(number == template.users.length-1) {
+        console.log("Alle Benutzertypen eingetragen.");
+        cb();
+        return;
+      }
+    });
+  }
+}
 
 /*
  * Erzeugt den identifier für eine Gruppe anhand des Semesters und des Gruppennamens.
@@ -394,7 +440,8 @@ function create_fh_membership_for_projects (projects, owner_role_id, others_role
     for (var i in template.users) {
       var project_id = projects[m].id;
       var user_id = template.users[i].id;
-      var role_id = others_role_id;
+      var role_id = others_role_id; // Standard-Rolle für Nicht-Eigentümer
+      
       // Wenn Name in Gruppe enthalten dann owner_role_id Rechte zuweisen
       if (projects[m].users)
         for (var n in projects[m].users) {
@@ -402,6 +449,7 @@ function create_fh_membership_for_projects (projects, owner_role_id, others_role
             role_id = owner_role_id;
           }
         }
+
       create_membership_mysql (project_id, user_id, role_id, function(member_result, role_result, project_id, user_id, role_id) {
         // Speichere neue IDs
         template.memberships[project_id][roles] = {
@@ -430,17 +478,11 @@ function create_fh_membership (cb) {
   template.memberships = {};
   // Rechte für alle Gruppen erzeugen
   create_fh_membership_for_projects(template.groups, 3, 4, function (result) {
-    if (result instanceof Error)
-      throw result;
     // Rechte für alle Unterprojekte erzeugen
     create_fh_membership_for_projects(template.project.subprojects, 3, 4, function (result) {
-      if (result instanceof Error)
-        throw result;
       // Rechte für das Hauptprojekt erzeugen
       create_fh_membership_for_projects([template.project], 3, 4, function (result) {
-        if (result instanceof Error)
-          throw result;
-        cb(result);
+        cb (result);
       });
     });
   });
@@ -470,7 +512,7 @@ function create_fh_users (cb) {
 /*
  * Projekte anhand eines template-json-strings laden.
  *
- * Verarbeitung asynchron daher Ausgabenreihenfolge unvorhersehbar.
+ * Hinweis: Verarbeitung asynchron daher Ausgabenreihenfolge unvorhersehbar.
  */ 
 function create_fh_projects (cb) {
   // Erzeugt Hauptproject
@@ -527,14 +569,16 @@ function create_fh_projects (cb) {
  */ 
 function load_template (filename, cb) {
   template = json_file.open(argv.templatepath+filename);
-
-  console.log("Erstelle Projekte");
-  create_fh_projects (function() {
-    console.log("Erstelle Benutzer");
-    create_fh_users (function() {
-      console.log("Erstelle Memberships");
-      create_fh_membership (function(result) {
-        cb(result);
+  console.log("Ermittel Benutzerrypen");
+  save_user_types_template (function () {
+    console.log("Erstelle Projekte");
+    create_fh_projects (function() {
+      console.log("Erstelle Benutzer");
+      create_fh_users (function() {
+        console.log("Erstelle Memberships");
+        create_fh_membership (function(result) {
+          cb(result);
+        });
       });
     });
   });
@@ -550,7 +594,7 @@ function save_template (filename, cb) {
 }
 
 /*
- * Anhand übergebene Option Skript ausführen.
+ * Skript nhand übergebene Option ausführen.
  */
 function run() {
 
@@ -598,7 +642,7 @@ function run() {
   // Template verarbeiten
   if(argv.template)
     load_template (argv.template, function () {
-      save_template("new_"+argv.template, function () {
+      save_template("backup_"+argv.template, function () {
         process.exit(0); // WORKAROUND
       });
     });
