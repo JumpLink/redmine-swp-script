@@ -49,6 +49,10 @@ var config     =  {
                     svn: json_file.open(argv.configpath+argv.svnconfig)
                   }
 
+// Hilfe ausgeben
+if(argv.help)
+  optimist.showHelp ();
+
 // Redmine mit entsprechender Config
 var redmine = new Redmine({
   host: config.redmine.host,
@@ -73,10 +77,7 @@ var g_groups = 0;
  */ 
 var g_users = 0;
 
-/*
- * Counter für angelegte Benutzer
- */ 
-var g_roles = 0;
+var template;
 
 /*
  * Alle Projekte mittels mysql Archivieren (bzw. deaktivieren)
@@ -299,7 +300,7 @@ function create_group_rest (name, user_ids, cb) {
  * FIXME funktioniert nicht
  * Siehe auch: create_membership_mysql
  */ 
-function create_membership_rest (project_id, user_id, role_ids, number, cb) {
+function create_membership_rest (project_id, user_id, role_ids, cb) {
   var membership = {
     user_id: user_id,
     role_ids: role_ids
@@ -309,7 +310,7 @@ function create_membership_rest (project_id, user_id, role_ids, number, cb) {
       console.log("Error: "+data);
       throw new Error('data');
     }
-    cb (data, number);
+    cb (data);
   });
 };
 
@@ -345,11 +346,11 @@ function create_role_mysql (member_id, role_id, cb) {
  * Erstellt ein neues Projektmitglied und weist diesem Rechte zu mittes Rest-API
  * siehe auch: create_membership_rest
  */ 
-function create_membership_mysql (project_id, user_id, role_id, number, cb) {
+function create_membership_mysql (project_id, user_id, role_id, cb) {
 
   create_member_mysql (project_id, user_id, function (member_result) {
     create_role_mysql (member_result.insertId, role_id, function (role_result) {
-      cb (member_result, role_result, project_id, user_id, role_id, number);
+      cb (member_result, role_result, project_id, user_id, role_id);
     });
   });
 };
@@ -382,33 +383,37 @@ function generate_group_identifier (group_name) {
  * id 3 = Administrator
  * id 4 = Entwickler
  */
-function create_fh_membership (template, cb) {
-  template.memberships = [];
-  for (var k in template.groups) {
-    console.log("Erzeuge Membership für "+template.groups[k].name);
+function create_fh_membership_for_projects (projects, owner_role_id, others_role_id, cb) {
+  if(argv.debug)
+    console.log("create_fh_membership_for_projects");
+  var roles = 0;
+  for (var m in projects) {
+    console.log("Erzeuge Membership für "+projects[m].name);
+      template.memberships[projects[m].id] = [];
+    // Jedem Benutzer eine Rolle zu diesem Projekt zuweisen
     for (var i in template.users) {
-      var project_id = template.groups[k].id;
+      var project_id = projects[m].id;
       var user_id = template.users[i].id;
-      var role_id = 4;
-      // Wenn Name in Gruppe enthalten dann Administratorrechte zuweisen
-      for (var n in template.groups[k].users) {
-        if (template.users[i].student_id == template.groups[k].users[n]) {
-          role_id = 3;
+      var role_id = others_role_id;
+      // Wenn Name in Gruppe enthalten dann owner_role_id Rechte zuweisen
+      if (projects[m].users)
+        for (var n in projects[m].users) {
+          if (template.users[i].student_id == projects[m].users[n]) {
+            role_id = owner_role_id;
+          }
         }
-      }
-      create_membership_mysql (project_id, user_id, role_id, k, function(member_result, role_result, project_id, user_id, role_id, number) {
+      create_membership_mysql (project_id, user_id, role_id, function(member_result, role_result, project_id, user_id, role_id) {
         // Speichere neue IDs
-        template.memberships[g_roles] = {
+        template.memberships[project_id][roles] = {
           member_id: member_result.insertId,
           id: role_result.insertId,
           role_id: role_id,
-          project_id: project_id,
           user_id: user_id
         }
-        g_roles++;
-        if (template.groups.length*template.users.length == g_roles) {
+        roles++;
+        if (projects.length*template.users.length == roles) {
           console.log("Alle Memberships angelegt.");
-          cb (template);
+          cb (true);
         }
       });
     }
@@ -416,9 +421,35 @@ function create_fh_membership (template, cb) {
 };
 
 /*
+ * id 3 = Administrator
+ * id 4 = Entwickler
+ */
+function create_fh_membership (cb) {
+  if(argv.debug)
+    console.log("create_fh_membership");
+  template.memberships = {};
+  // Rechte für alle Gruppen erzeugen
+  create_fh_membership_for_projects(template.groups, 3, 4, function (result) {
+    if (result instanceof Error)
+      throw result;
+    // Rechte für alle Unterprojekte erzeugen
+    create_fh_membership_for_projects(template.project.subprojects, 3, 4, function (result) {
+      if (result instanceof Error)
+        throw result;
+      // Rechte für das Hauptprojekt erzeugen
+      create_fh_membership_for_projects([template.project], 3, 4, function (result) {
+        if (result instanceof Error)
+          throw result;
+        cb(result);
+      });
+    });
+  });
+};
+
+/*
  * Benutzer anhand eines template-json-strings erstellen.
  */ 
-function create_fh_users (template, cb) {
+function create_fh_users (cb) {
   // Durchläut Benutzer
   for (var i in template.users) {
     // Benutzer anlegen
@@ -430,7 +461,7 @@ function create_fh_users (template, cb) {
 
       if (g_users == template.users.length) {
         console.log("Alle Benutzer angelegt.");
-        cb (template);
+        cb ();
       }
     });
   }
@@ -441,10 +472,11 @@ function create_fh_users (template, cb) {
  *
  * Verarbeitung asynchron daher Ausgabenreihenfolge unvorhersehbar.
  */ 
-function create_fh_projects (template, cb) {
+function create_fh_projects (cb) {
   // Erzeugt Hauptproject
   create_project_rest (template.project.name, template.project.description, get_semester()+"-main", template.project.links, null, 0, function(main_project){
     
+    // Neue ID speichern
     template.project.id = main_project.project.id
     console.log("Hauptprojekt '"+main_project.project.name+"' mit ID "+main_project.project.id+" erfolgreich erstellt.");
     
@@ -454,7 +486,9 @@ function create_fh_projects (template, cb) {
       // Erstellt Teilprojekt
       create_project_rest (template.project.subprojects[k].name, template.project.subprojects[k].description, get_semester()+"-sub"+k, null, main_project, k, function(sub_project, number) {
         
-        template.project.subprojects[k].id = sub_project.project.id;
+        // Neue ID speichern
+        template.project.subprojects[number].id = sub_project.project.id;
+
         console.log("Unterprojekt '"+sub_project.project.name+"' mit ID "+sub_project.project.id+" erfolgreich erstellt.");
 
         // Durchläuft Teilprojektgruppen
@@ -475,7 +509,7 @@ function create_fh_projects (template, cb) {
               // Da Ablauf asynchron hier ueberpruefung ob alle Unterprojekte erstellt wurden
               if(g_groups == template.groups.length) {
                 console.log("Alle Gruppen erstellt.");
-                cb (template);
+                cb ();
               }
 
             })
@@ -492,14 +526,15 @@ function create_fh_projects (template, cb) {
  * @param filename: String des Dateinamens der Datei die aus ./templates/ geladen werden soll.
  */ 
 function load_template (filename, cb) {
-  var template = json_file.open(argv.templatepath+filename);
+  template = json_file.open(argv.templatepath+filename);
+
   console.log("Erstelle Projekte");
-  create_fh_projects (template, function(template) {
+  create_fh_projects (function() {
     console.log("Erstelle Benutzer");
-    create_fh_users (template, function(template) {
+    create_fh_users (function() {
       console.log("Erstelle Memberships");
-      create_fh_membership (template, function(template) {
-        cb(template);
+      create_fh_membership (function(result) {
+        cb(result);
       });
     });
   });
@@ -508,7 +543,7 @@ function load_template (filename, cb) {
 /*
  * Speichert ein neues Template als Datei.
  */
-function save_template (template, filename, cb) {
+function save_template (filename, cb) {
   json_file.save(argv.templatepath+filename, template, function() {
     cb();
   });
@@ -518,10 +553,6 @@ function save_template (template, filename, cb) {
  * Anhand übergebene Option Skript ausführen.
  */
 function run() {
-
-  // Hilfe ausgeben
-  if(argv.help)
-    optimist.showHelp ();
 
   // Projekte ausgeben
   if(argv.getprojects)
@@ -566,8 +597,8 @@ function run() {
 
   // Template verarbeiten
   if(argv.template)
-    load_template (argv.template, function (new_template) {
-      save_template(new_template, "new_"+argv.template, function () {
+    load_template (argv.template, function () {
+      save_template("new_"+argv.template, function () {
         process.exit(0); // WORKAROUND
       });
     });
