@@ -14,7 +14,7 @@ var json_file  = require(__dirname+'/json.js');                               //
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
                   .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R'])
-                  .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M'])
+                  .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
                   .alias('c', 'configpath').default('c', 'config/').describe('c', 'Alternatives Config-Verzeichnis verwenden')
@@ -26,6 +26,7 @@ var optimist   = require('optimist')                                          //
                   .alias('a', 'archive').describe('a', 'Alle derzeit aktuellen Projekte Archivieren')
                   .alias('t', 'template').describe('t', 'Projekte und Benutzer anhand einer Template-Datei erstellen')
                   .alias('p', 'templatepath').default('p', 'templates/').describe('p', 'Anderes Templateverzeichnis verwenden')
+                  .alias('T', 'removetemp').describe('T', 'Benutzer/Projekte aus Backup-Template-Datei löschen')
                   .alias('d', 'debug').default('d', false).describe('d', 'Debug-Modus aktivieren')
                   .alias('l', 'lock').describe('l', 'Alle aktiven Benutzer - bis auf ars, si und admin - sperren')
                   .alias('g', 'getusers').describe('g', 'Alle Benutzer ausgeben')
@@ -195,6 +196,19 @@ function create_project_rest (name, description, identifier, links, parent, numb
 }
 
 /*
+ * Projekt mit ID löschen
+ */ 
+function remove_project_rest (product_id, cb) {
+  redmine.deleteProject(product_id, function(data) {
+    // if (data instanceof Error) {
+    //   sys.inspect("Error: "+data); // FIXME
+    //   return;
+    // }
+    cb(data);
+  });
+}
+
+/*
  * Alle Projekte an cb übergeben.
  */ 
 function get_projects_rest (cb) {
@@ -208,7 +222,7 @@ function get_projects_rest (cb) {
 }
 
 /*
- * Alle Projekte an cb übergeben.
+ * Einen Benutzer anlegen
  */
 function create_user_rest (login, firstname, lastname, mail, number, cb) {
   var user = {
@@ -226,6 +240,20 @@ function create_user_rest (login, firstname, lastname, mail, number, cb) {
     cb (data, number);
   });
 }
+
+/*
+ * Einen Benutzer löschen
+ */
+function remove_user_rest (user_id, number, cb) {
+  redmine.deleteUser(user_id, function(data) {
+    // if (data instanceof Error) {
+    //   console.log("Error: " + data); // FIXME
+    //   return;
+    // }
+    cb (data, number);
+  });
+}
+
 
 /*
  * Alle Benutzer an cb übergeben.
@@ -409,7 +437,7 @@ function save_user_types_template (cb) {
   for (var i in template.users) {
     get_user_type_template(template.users[i].student_id, i, function (type, number) {
       template.users[number].type = type;
-      if(number == template.users.length-1) {
+      if (number == template.users.length-1) {
         console.log("Alle Benutzertypen eingetragen.");
         cb();
         return;
@@ -432,23 +460,29 @@ function generate_group_identifier (group_name) {
 function create_fh_membership_for_projects (projects, owner_role_id, others_role_id, cb) {
   if(argv.debug)
     console.log("create_fh_membership_for_projects");
-  var roles = 0;
   for (var m in projects) {
     console.log("Erzeuge Membership für "+projects[m].name);
-      template.memberships[projects[m].id] = [];
+    template.memberships[projects[m].id] = [];
+    var roles = 0; // Anzahl der Rollen für neuen Eintrag in der Template (als Index)
     // Jedem Benutzer eine Rolle zu diesem Projekt zuweisen
     for (var i in template.users) {
       var project_id = projects[m].id;
       var user_id = template.users[i].id;
       var role_id = others_role_id; // Standard-Rolle für Nicht-Eigentümer
       
-      // Wenn Name in Gruppe enthalten dann owner_role_id Rechte zuweisen
-      if (projects[m].users)
-        for (var n in projects[m].users) {
-          if (template.users[i].student_id == projects[m].users[n]) {
-            role_id = owner_role_id;
+      // Wenn User Koordinator ist, dann ist er besitzer egal ob er zur Gruppe gehört oder nicht
+      if (template.users[i].type == "coordinator")
+        role_id = owner_role_id;
+      // Zweite möglichkeit: User gehört tatsächlich zur Gruppe 
+      else {
+        // Wenn Name in Gruppe enthalten dann owner_role_id Rechte zuweisen
+        if (projects[m].users)
+          for (var n in projects[m].users) {
+            if (template.users[i].student_id == projects[m].users[n]) {
+              role_id = owner_role_id;
+            }
           }
-        }
+      }
 
       create_membership_mysql (project_id, user_id, role_id, function(member_result, role_result, project_id, user_id, role_id) {
         // Speichere neue IDs
@@ -585,6 +619,26 @@ function load_template (filename, cb) {
 }
 
 /*
+ * Löscht Benutzer und Gruppen aus einer Backup-Template
+ */ 
+function remove_from_template (filename, cb) {
+  template = json_file.open(argv.templatepath+filename);
+
+  // Lösche Hauptprojekt, unterprojekte werden automatisch gelöscht
+  remove_project_rest (template.project.id, function (data) {
+    // Lösche User
+    for (var i in template.users) {
+      remove_user_rest (template.users[i].id, i, function (data, number) {
+        if (number == template.users.length-1) {
+          console.log("Benutzer und Projekte gelöscht.");
+          cb();
+        }
+      });
+    }
+  });
+}
+
+/*
  * Speichert ein neues Template als Datei.
  */
 function save_template (filename, cb) {
@@ -659,6 +713,12 @@ function run() {
       })
     }
   }
+
+  // Projekte und Benutzer löschen
+  if(argv.removetemp)
+    remove_from_template (argv.removetemp, function() {
+
+    })
 }
     
 run();
