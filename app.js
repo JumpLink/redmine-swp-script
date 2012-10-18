@@ -14,7 +14,7 @@ var json_file  = require(__dirname+'/json.js');                               //
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
                   .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R'])
-                  .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T'])
+                  .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T', 'k'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
                   .alias('c', 'configpath').default('c', 'config/').describe('c', 'Alternatives Config-Verzeichnis verwenden')
@@ -37,7 +37,9 @@ var optimist   = require('optimist')                                          //
                   .alias('I', 'identifier').describe('I', 'ID-URL für neues Projekt')
                   .alias('P', 'parentid').describe('P', 'ID des Elternprojektes für neues Projekt')
                   .alias('b', 'backup').describe('b', 'Backup der Redmine-Datenbank erstellen')
-                  .alias('B', 'backuppath').default('B', '/backup/db/').describe('B', 'Alternatives Backup-Verzeichnis verwenden')
+                  .alias('B', 'backuppath').default('B', '/backup/').describe('B', 'Alternatives Backup-Verzeichnis verwenden')
+                  .alias('k', 'restoredb').describe('k', 'Datenbank wiederherstellen')
+                  .alias('K', 'restorefiles').describe('K', 'Anhänge wiederherstellen')
                   .alias('o', 'output').default('o', '<table>_<date>.gz').describe('o', 'Backup-Zieldateiname');
 
 //Optionen laden
@@ -84,6 +86,89 @@ var g_users = 0;
 var template;
 
 /*
+ * Redmine-Server starten
+ */ 
+function start_redmine() {
+  var http = "sudo ruby "+config.redmine.path+"/script/server -p 80 webrick -e production -d;";
+  var https = "sudo ruby "+config.redmine.path+"/script/ssl_server -p 443 webrick -e production -d;";
+
+  exec(http+" "+https, function (error, stdout, stderr) {
+    if (argv.debug) { console.log(stdout); if(stderr) console.log(stderr); if(error) console.log(error); }
+  });
+}
+
+/*
+ * Redmine-Server stoppen
+ *
+ * TODO eleganter
+ */ 
+function stop_redmine () {
+  exec("sudo killall ruby -9", function (error, stdout, stderr) {
+    console.log(stdout);
+    if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+  });
+}
+
+/*
+ * Backup der Redmine-Datenbank erstellen
+ * Bedingung: mysqldump muss installiert sein.
+ */ 
+function backup_database_mysql () {
+  fs.exists('/usr/bin/mysqldump', function (exists) {
+    if(exists) {
+      var command = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+argv.backuppath+"db/"+argv.output.replace("<table>", config.mysql.name).replace("<date>","`date +%F_%T`");
+      if(argv.debug) console.log(command);
+      exec(command, function (error, stdout, stderr) { 
+        console.log(stdout);
+        if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+      });
+    } else {
+      console.log("Fehler: /usr/bin/mysqldump nicht gefunden!\nBitte mysql-server installieren oder dieses direkt Skript auf dem Server ausführen.");
+    }
+  });
+}
+
+/*
+ * Backup der Redmine-Datenbank wiederherstellen.
+ * --restoredb
+ */ 
+function restore_database_mysql (filename) {
+  var command = "gzip -c -d "+__dirname+argv.backuppath+"db/"+filename+" | mysql -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name;
+  if(argv.debug) console.log(command);
+  exec(command, function (error, stdout, stderr) { 
+    console.log(stdout);
+    if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+  });
+}
+
+/*
+ * Backup der Attachments erstellen.
+ */
+function backup_attachments () {
+  var mkdir = "mkdir -p "+__dirname+argv.backuppath+"files/ ;";
+  var backup = "tar zcPf "+__dirname+argv.backuppath+"files/redmine_attachments_`date +%F_%T`.tar.gz "+config.redmine.path+"/default/files ;";
+  var command = mkdir+" "+backup;
+  if(argv.debug) console.log(command);
+  exec(command, function (error, stdout, stderr) {
+    console.log(stdout);
+    if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+  });
+}
+
+/*
+ * Backup der Attachments wiederherstellen.
+ * --restorefiles
+ */
+function restore_attachments () {
+  var command = "tar xvPf "+__dirname+argv.backuppath+argv.restorefiles;
+  if(argv.debug)console.log(command);
+  exec(command, function (error, stdout, stderr) {
+    console.log(stdout);
+    if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+  });
+}
+
+/*
  * Alle Projekte mittels mysql Archivieren (bzw. deaktivieren)
  * status: 9 = archiviert; 1 = aktiviert
  */ 
@@ -104,24 +189,6 @@ function lock_all_users_mysql () {
    if (err) throw err;
   });
   connection.end();
-}
-
-/*
- * Backup der Redmine-Datenbank erstellen
- * Bedingung: mysqldump muss installiert sein.
- */ 
-function backup_database_mysql () {
-  fs.exists('/usr/bin/mysqldump', function (exists) {
-    if(exists) {
-      var command = "/usr/bin/mysqldump -h "+config.mysql.host+" -u "+config.mysql.user+" -p"+config.mysql.password+" "+config.mysql.name+" | gzip > "+__dirname+argv.backuppath+argv.output.replace("<table>", config.mysql.name).replace("<date>","`date +%F_%T`");
-      console.log(command);
-      exec(command, function (error, stdout, stderr) { 
-        console.log(stdout);
-      });
-    } else {
-      console.log("Fehler: /usr/bin/mysqldump nicht gefunden!\nBitte mysql-server installieren oder dieses direkt Skript auf dem Server ausführen.");
-    }
-  });
 }
 
 /*
@@ -719,6 +786,9 @@ function run() {
     remove_from_template (argv.removetemp, function() {
 
     })
+
+  if (argv.restoredb)
+    restore_database_mysql(argv.restoredb);
 }
     
 run();

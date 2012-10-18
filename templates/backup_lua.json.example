@@ -14,7 +14,8 @@
         "groups": [
           "swp04",
           "swp05"
-        ]
+        ],
+        "id": 1433
       },
       {
         "name": "Lexikalische / Syntaktische Analyse",
@@ -22,7 +23,8 @@
         "groups": [
           "swp02",
           "swp03"
-        ]
+        ],
+        "id": 1434
       },
       {
         "name": "Laufzeitsystem / Shell",
@@ -30,7 +32,8 @@
         "groups": [
           "swp08",
           "swp09"
-        ]
+        ],
+        "id": 1435
       },
       {
         "name": "Virtuelle Maschine",
@@ -38,53 +41,62 @@
         "groups": [
           "swp06",
           "swp07"
-        ]
+        ],
+        "id": 1436
       },
       {
         "name": "Schnittstellen, Prototypen, Koordination",
         "description": "Gewährleistet das funktionale Zusammenspiel der Teilprogramme.",
         "groups": [
           "swp01"
-        ]
+        ],
+        "id": 1432
       }
-    ]
+    ],
+    "id": 1431
   },
   "users": [
     {
       "student_id": "minf1111",
       "lastname": "test1",
       "firstname": "test1",
-      "type": "coordinator"
+      "type": "coordinator",
+      "id": 451
     },
     {
       "student_id": "inf2222",
       "lastname": "test2",
       "firstname": "test2",
-      "type": "coordinator"
+      "type": "coordinator",
+      "id": 452
     },
     {
       "student_id": "inf3333",
       "lastname": "test3",
       "firstname": "test3",
-      "type": "developer"
+      "type": "developer",
+      "id": 453
     },
     {
       "student_id": "inf4444",
       "lastname": "test4",
       "firstname": "test4",
-      "type": "developer"
+      "type": "developer",
+      "id": 454
     },
     {
       "student_id": "inf5555",
       "lastname": "test5",
       "firstname": "test5",
-      "type": "developer"
+      "type": "developer",
+      "id": 455
     },
     {
       "student_id": "inf6666",
       "lastname": "test6",
       "firstname": "test6",
-      "type": "developer"
+      "type": "developer",
+      "id": 456
     }
   ],
   "groups": [
@@ -94,14 +106,16 @@
         "minf1111",
         "inf2222"
       ],
-      "type": "coordinator"
+      "type": "coordinator",
+      "id": 1437
     },
     {
       "name": "swp02",
       "users": [
         "inf3333"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1440
     },
     {
       "name": "swp03",
@@ -110,49 +124,904 @@
         "inf5555",
         "inf6666"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1441
     },
     {
       "name": "swp04",
       "users": [
         "inf6666"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1438
     },
     {
       "name": "swp05",
       "users": [
         "inf6666"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1439
     },
     {
       "name": "swp06",
       "users": [
         "inf6666"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1444
     },
     {
       "name": "swp07",
       "users": [
         "inf6666"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1445
     },
     {
       "name": "swp08",
       "users": [
         "inf6666"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1442
     },
     {
       "name": "swp09",
       "users": [
         "inf6666"
       ],
-      "type": "developer"
+      "type": "developer",
+      "id": 1443
     }
-  ]
+  ],
+  "memberships": {
+    "1431": [
+      {
+        "member_id": 2638,
+        "id": 2862,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2639,
+        "id": 2863,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2640,
+        "id": 2864,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2641,
+        "id": 2865,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2642,
+        "id": 2866,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2643,
+        "id": 2867,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1432": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2632,
+        "id": 2856,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2633,
+        "id": 2857,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2634,
+        "id": 2858,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2635,
+        "id": 2859,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2636,
+        "id": 2860,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2637,
+        "id": 2861,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1433": [
+      {
+        "member_id": 2608,
+        "id": 2832,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2609,
+        "id": 2833,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2610,
+        "id": 2834,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2611,
+        "id": 2835,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2612,
+        "id": 2836,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2613,
+        "id": 2837,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1434": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2614,
+        "id": 2838,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2615,
+        "id": 2839,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2616,
+        "id": 2840,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2617,
+        "id": 2841,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2618,
+        "id": 2842,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2619,
+        "id": 2843,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1435": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2620,
+        "id": 2844,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2621,
+        "id": 2845,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2622,
+        "id": 2846,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2623,
+        "id": 2847,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2624,
+        "id": 2848,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2625,
+        "id": 2849,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1436": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2626,
+        "id": 2850,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2627,
+        "id": 2851,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2628,
+        "id": 2852,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2629,
+        "id": 2853,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2630,
+        "id": 2854,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2631,
+        "id": 2855,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1437": [
+      {
+        "member_id": 2554,
+        "id": 2778,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2555,
+        "id": 2779,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2556,
+        "id": 2780,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2557,
+        "id": 2781,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2558,
+        "id": 2782,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2559,
+        "id": 2783,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1438": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2572,
+        "id": 2796,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2573,
+        "id": 2797,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2574,
+        "id": 2798,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2575,
+        "id": 2799,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2576,
+        "id": 2800,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2577,
+        "id": 2801,
+        "role_id": 3,
+        "user_id": 456
+      }
+    ],
+    "1439": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2578,
+        "id": 2802,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2579,
+        "id": 2803,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2580,
+        "id": 2804,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2581,
+        "id": 2805,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2582,
+        "id": 2806,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2583,
+        "id": 2807,
+        "role_id": 3,
+        "user_id": 456
+      }
+    ],
+    "1440": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2560,
+        "id": 2784,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2561,
+        "id": 2785,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2562,
+        "id": 2786,
+        "role_id": 3,
+        "user_id": 453
+      },
+      {
+        "member_id": 2563,
+        "id": 2787,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2564,
+        "id": 2788,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2565,
+        "id": 2789,
+        "role_id": 4,
+        "user_id": 456
+      }
+    ],
+    "1441": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2566,
+        "id": 2790,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2567,
+        "id": 2791,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2568,
+        "id": 2792,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2569,
+        "id": 2793,
+        "role_id": 3,
+        "user_id": 454
+      },
+      {
+        "member_id": 2570,
+        "id": 2794,
+        "role_id": 3,
+        "user_id": 455
+      },
+      {
+        "member_id": 2571,
+        "id": 2795,
+        "role_id": 3,
+        "user_id": 456
+      }
+    ],
+    "1442": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2596,
+        "id": 2820,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2597,
+        "id": 2821,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2598,
+        "id": 2822,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2599,
+        "id": 2823,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2600,
+        "id": 2824,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2601,
+        "id": 2825,
+        "role_id": 3,
+        "user_id": 456
+      }
+    ],
+    "1443": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2602,
+        "id": 2826,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2603,
+        "id": 2827,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2604,
+        "id": 2828,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2605,
+        "id": 2829,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2606,
+        "id": 2830,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2607,
+        "id": 2831,
+        "role_id": 3,
+        "user_id": 456
+      }
+    ],
+    "1444": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2584,
+        "id": 2808,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2585,
+        "id": 2809,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2586,
+        "id": 2810,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2587,
+        "id": 2811,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2588,
+        "id": 2812,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2589,
+        "id": 2813,
+        "role_id": 3,
+        "user_id": 456
+      }
+    ],
+    "1445": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      {
+        "member_id": 2590,
+        "id": 2814,
+        "role_id": 3,
+        "user_id": 451
+      },
+      {
+        "member_id": 2591,
+        "id": 2815,
+        "role_id": 3,
+        "user_id": 452
+      },
+      {
+        "member_id": 2592,
+        "id": 2816,
+        "role_id": 4,
+        "user_id": 453
+      },
+      {
+        "member_id": 2593,
+        "id": 2817,
+        "role_id": 4,
+        "user_id": 454
+      },
+      {
+        "member_id": 2594,
+        "id": 2818,
+        "role_id": 4,
+        "user_id": 455
+      },
+      {
+        "member_id": 2595,
+        "id": 2819,
+        "role_id": 3,
+        "user_id": 456
+      }
+    ]
+  }
 }
