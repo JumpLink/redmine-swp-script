@@ -8,7 +8,8 @@ Installation
 ============
 ```
 sudo apt-add-repository ppa:chris-lea/node.js
-sudo apt-get install nodejs
+sudo apt-get update
+sudo apt-get install nodejs git-core
 git clone git://github.com/JumpLink/redmine-swp-script.git
 npm install
 ```
@@ -19,7 +20,26 @@ Npm installiert dabei automatisch die Abhängigkeiten nach, dies sind:
 * restler in Version 2.0.1 und
 und meinen Fork von [node-redmine](https://github.com/JumpLink/node-redmine).
 
+Anschließend die Dateien mysql.json.example, redmine.json.example und svn.json.example umbenennen und anpassen:
+```
+cd config/
+mv mysql.json.example mysql.json
+mv redmine.json.example redmine.json
+mv svn.json.example svn.json
+vim mysql.json redmine.json svn.json
+```
+Den apiKey in der redmine.json kann man für einen Benutzer mit Adminrechten innerhalb von Redmine einrichten.
 
+
+Zugriff von außen
+-----------------
+Wenn das Skript nicht auf dem selben Server ausgeführt werden soll auf dem Redmine installiert ist, dann ist noch folgendes nötig:
+
+* bind-address innerhalb von /etc/mysql/my.cnf auskommentieren.
+* mittels MySQL die Rechte der Datenbank anpassen:
+```
+grant all on redmine.* to 'redmine'@'%' IDENTIFIED BY 'Equ7Aise';
+```
 
 Technisches
 ===========
