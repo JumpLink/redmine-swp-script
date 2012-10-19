@@ -13,7 +13,7 @@ var moment     = require('moment-range');                                     //
 var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
-                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R'])
+                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R', 'start', 'stop'])
                   .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T', 'k', 'K'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
@@ -37,11 +37,15 @@ var optimist   = require('optimist')                                          //
                   .alias('I', 'identifier').describe('I', 'ID-URL für neues Projekt')
                   .alias('P', 'parentid').describe('P', 'ID des Elternprojektes für neues Projekt')
                   .alias('b', 'backup').describe('b', 'Backup der Redmine-Datenbank erstellen')
+                  .alias('a', 'backupall').describe('a', 'Backup der Dateien und der Datenbank erstellen')
                   .alias('B', 'backuppath').default('B', '/backup/').describe('B', 'Alternatives Backup-Verzeichnis verwenden')
                   .alias('k', 'restoredb').describe('k', 'Datenbank wiederherstellen')
                   .alias('K', 'restorefiles').describe('K', 'Anhänge wiederherstellen')
                   .alias('o', 'backupname').default('o', '<table>_<date>.gz').describe('o', 'Backup-Zieldateiname')
-                  .alias('Q', 'backupfiles').describe('Q', 'Backup der Dateianhänge erstellen');
+                  .alias('Q', 'backupfiles').describe('Q', 'Backup der Dateianhänge erstellen')
+                  .describe('start', 'Redmine starten')
+                  .describe('stop', 'Redmine stoppen');
+                  .describe('auto', 'Backups durchführen, Benutzer/Projekte deaktiveren, Template anwenden');
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -90,20 +94,23 @@ var template;
 
 /*
  * Redmine-Server starten
+ *
+ * --start
  */ 
 function start_redmine() {
-  var http = "sudo ruby "+config.redmine.path+"/script/server -p 80 webrick -e production -d;";
-  var https = "sudo ruby "+config.redmine.path+"/script/ssl_server -p 443 webrick -e production -d;";
-
-  exec(http+" "+https, function (error, stdout, stderr) {
+  var http = "sudo ruby "+config.redmine.path+"/script/server -p 80 webrick -e production -d ;";
+  var https = "sudo ruby "+config.redmine.path+"/script/ssl_server -p 443 webrick -e production -d ;";
+  var command = http+" "+https;
+  if(argv.debug) console.log(command);
+  exec(child_process.exec(command, /*, options, callback, */);, function (error, stdout, stderr) {
     if (argv.debug) { console.log(stdout); if(stderr) console.log(stderr); if(error) console.log(error); }
   });
 }
 
 /*
- * Redmine-Server stoppen
+ * Redmine-Server stoppen TODO eleganter
  *
- * TODO eleganter
+ * --stop
  */ 
 function stop_redmine () {
   exec("sudo killall ruby -9", function (error, stdout, stderr) {
@@ -116,7 +123,7 @@ function stop_redmine () {
  * Backup der Redmine-Datenbank erstellen
  * Bedingung: mysqldump muss installiert sein.
  */ 
-function backup_database_mysql () {
+function backup_database_mysql (cb) {
   fs.exists('/usr/bin/mysqldump', function (exists) {
     if(exists) {
       var mkdir = "mkdir -p "+__dirname+argv.backuppath+"db/ ;";
@@ -126,6 +133,7 @@ function backup_database_mysql () {
       exec(command, function (error, stdout, stderr) { 
         console.log(stdout);
         if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+        cb(error, stdout, stderr);
       });
     } else {
       console.log("Fehler: /usr/bin/mysqldump nicht gefunden!\nBitte mysql-server installieren oder dieses direkt Skript auf dem Server ausführen.");
@@ -150,26 +158,28 @@ function restore_database_mysql (filename) {
  * Backup der Attachments erstellen.
  * --backupfiles
  */
-function backup_attachments () {
+function backup_attachments (cb) {
   var mkdir = "mkdir -p "+__dirname+argv.backuppath+"files/ ;";
   var backup = "sudo tar zcPfv "+__dirname+argv.backuppath+"files/redmine_attachments_`date +%F_%T`.tar.gz "+config.redmine.path+"/files ;";
   var command = mkdir+" "+backup;
-  console.log ("Bitte Passwort für Dateizugriff auf "+config.redmine.path+"/files eingeben");
+  console.log ("Dateizugriff auf "+config.redmine.path+"/files  benötigt sudo:");
   if(argv.debug) console.log(command);
   exec(command, function (error, stdout, stderr) {
     console.log(stdout);
     if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+    cb(error, stdout, stderr);
   });
 }
 
 /*
  * Backup der Attachments wiederherstellen.
+ *
  * --restorefiles
  */
 function restore_attachments () {
   var command = "sudo tar xvPf "+__dirname+argv.backuppath+"files/"+argv.restorefiles;
   if(argv.debug)console.log(command);
-  console.log ("Bitte Passwort für Dateizugriff auf "+config.redmine.path+"/files eingeben");
+  console.log ("Dateizugriff benötigt sudo:");
   exec(command, function (error, stdout, stderr) {
     console.log(stdout);
     if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
@@ -179,29 +189,36 @@ function restore_attachments () {
 /*
  * Alle Projekte mittels mysql Archivieren (bzw. deaktivieren)
  * status: 9 = archiviert; 1 = aktiviert
+ *
+ * --archive
  */ 
-function archive_all_projects_mysql () {
+function archive_all_projects_mysql (cb) {
   connection.query('update '+config.mysql.name+'.projects set status=9 where status=1', function(err, rows, fields) {
    if (err) throw err;
   });
-
   connection.end();
+  cb ();
 }
 
 /*
  * Alle Benutzer - bis auf ars, si und admin - mittels mysql sperren
  * status: 1 = entsperrt; 3 = gesperrt
+ *
+ * --lock
  */ 
-function lock_all_users_mysql () {
+function lock_all_users_mysql (cb) {
   connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!="ars" and login!="si" and login!="admin"', function(err, rows, fields) {
    if (err) throw err;
   });
   connection.end();
+  cb ();
 }
 
 /*
  * Berechnet die aktuelle Semesterbezeichnung und gibt sie als String zurück.
  * Evtl muss auf dem Rechner vorher Uhr synchronisiert werden: sudo ntpdate ptbtime1.ptb.de
+ *
+ * --semester
  */ 
 function get_semester () {
   var now = moment();
@@ -345,7 +362,7 @@ function get_users_rest (cb) {
 }
 
 /*
- * FIXME funktioniert nicht
+ * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
  * Alle Rollen im JSON-Format an cb übergeben.
  * Siehe auch: get_roles_mysql
  */ 
@@ -372,7 +389,7 @@ function get_roles_mysql (cb) {
 }
 
 /*
- * FIXME funktioniert nicht
+ * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
  * Alle Gruppen an Callback übergeben mittels Rest-API
  */ 
 function get_groups_rest (cb) {
@@ -386,7 +403,7 @@ function get_groups_rest (cb) {
 };
 
 /*
- * FIXME funktioniert nicht
+ * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
  * Gruppe über die Rest-API erstellen
  */ 
 function create_group_rest (name, user_ids, cb) {
@@ -404,7 +421,7 @@ function create_group_rest (name, user_ids, cb) {
 };
 
 /*
- * FIXME funktioniert nicht
+ * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
  * Siehe auch: create_membership_mysql
  */ 
 function create_membership_rest (project_id, user_id, role_ids, cb) {
@@ -724,6 +741,38 @@ function save_template (filename, cb) {
 }
 
 /*
+ * Datenbank und Dateianhänge sichern
+ *
+ * --backupall
+ */
+function backup_all (cb) {
+  backup_database_mysql (function (error, stdout, stderr) {
+    backup_attachments (function (error, stdout, stderr) {
+      cb();
+    });
+  });
+}
+
+/*
+ * Backup erstellen, Benutzer/Gruppen deaktiveren, Template anwenden, neues Template speichern.
+ *
+ * --template [Dateiname] --auto
+ */
+function auto (cb) {
+  backup_all (function () {
+    archive_all_projects_mysql (function () {
+      lock_all_users_mysql ( function () {
+        load_template (argv.template, function () {
+          save_template("backup_"+argv.template, function () {
+            cb ();
+          });
+        });
+      });
+    });
+  });
+}
+
+/*
  * Skript nhand übergebene Option ausführen.
  */
 function run() {
@@ -755,7 +804,9 @@ function run() {
 
   // Backup erstellen
   if (argv.backup)
-    backup_database_mysql ();
+    backup_database_mysql (function (error, stdout, stderr) {
+
+    });
 
   // User sperren
   if (argv.lock)
@@ -770,11 +821,16 @@ function run() {
     console.log(get_semester ());
 
   // Template verarbeiten
-  if (argv.template)
+  if (argv.template && !argv.auto))
     load_template (argv.template, function () {
       save_template("backup_"+argv.template, function () {
         process.exit(0); // WORKAROUND
       });
+    });
+
+  if (argv.template && argv.auto)
+    auto (function () {
+      console.log("done");
     });
 
   // Neues Projekt erstellen
@@ -802,11 +858,25 @@ function run() {
 
   // Dateianhänge sichern
   if (argv.backupfiles)
-    backup_attachments ();
+    backup_attachments (function (error, stdout, stderr) {
+
+    });
 
   // Dateianhänge wiederherstellen
   if (argv.restorefiles)
     restore_attachments ();
+
+  // Redmine starten
+  if (argv.start)
+    start_redmine ();
+
+  // Redmine stoppen
+  if (argv.stop)
+    stop_redmine ();
+
+  // Dateianhänge und Datenbank sichern
+  if (argv.backupall)
+    stop_redmine ();
 }
     
 run();
