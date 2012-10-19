@@ -1,5 +1,6 @@
 {
-	"host": "http://redmine.fh-wedel.de",
-	"apiKey": "irgendwas!!!!1111eins!eins!!eins",
+	"info" : "Der host sollte mit http:// oder https:// beginnen",
+	"host": "http://localhost",
+	"apiKey": "321 alles muss versteckt sein",
 	"path": "/var/www/redmine-1.2"
 }

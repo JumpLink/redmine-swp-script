@@ -361,7 +361,7 @@ function get_users_rest (cb) {
   redmine.getUsers(function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      throw new Error('data');
+      throw new Error("Kann Benutzer nicht auslesen.");
     }
     cb (data);
   });
@@ -771,11 +771,11 @@ function backup_all (cb) {
  * --template [Dateiname] --auto
  */
 function auto (cb) {
+  connection.connect();
   console.log("Teste Verbindung");
   test_connection (function () {
     console.log("Erstelle Backups");
     backup_all (function () {
-      connection.connect();
       console.log("Deaktiviere alte Benutzer und Projekte");
       archive_all_projects_mysql (function () {
         lock_all_users_mysql ( function () {
