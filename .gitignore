@@ -6,15 +6,17 @@ lib-cov
 *.out
 *.pid
 *.gz
-*.json
 *.sublime-project
 *.sublime-workspace
-templates/new_*
+templates/backup_*
 
 pids
 logs
 results
 backup
+mysql.json
+redmine.json
+svn.json
 
 node_modules
 npm-debug.log

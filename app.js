@@ -150,7 +150,7 @@ function restore_database_mysql (filename) {
  */
 function backup_attachments () {
   var mkdir = "mkdir -p "+__dirname+argv.backuppath+"files/ ;";
-  var backup = "tar zcPf "+__dirname+argv.backuppath+"files/redmine_attachments_`date +%F_%T`.tar.gz "+config.redmine.path+"/default/files ;";
+  var backup = "tar zcPfv "+__dirname+argv.backuppath+"files/redmine_attachments_`date +%F_%T`.tar.gz "+config.redmine.path+"/files ;";
   var command = mkdir+" "+backup;
   if(argv.debug) console.log(command);
   exec(command, function (error, stdout, stderr) {
