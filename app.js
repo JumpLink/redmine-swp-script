@@ -197,9 +197,9 @@ function restore_attachments () {
 function archive_all_projects_mysql (cb) {
   connection.query('update '+config.mysql.name+'.projects set status=9 where status=1', function(err, rows, fields) {
    if (err) throw err;
+   connection.end();
    cb ();
   });
-  //connection.end();
   
 }
 
@@ -212,9 +212,9 @@ function archive_all_projects_mysql (cb) {
 function lock_all_users_mysql (cb) {
   connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!="ars" and login!="si" and login!="admin"', function(err, rows, fields) {
    if (err) throw err;
+   connection.end();
    cb ();
   });
-  //connection.end();
 }
 
 /*
@@ -388,9 +388,9 @@ function get_roles_rest (cb) {
 function get_roles_mysql (cb) {
   connection.query('select id,name from '+config.mysql.name+'.roles', function(err, rows, fields) {
    if (err) throw err;
+   connection.end();
    cb (rows, fields);
   });
-  connection.end();
 }
 
 /*
@@ -453,6 +453,7 @@ function create_member_mysql (project_id, user_id, cb) {
     if (err) throw err;
     if (argv.debug)
       console.log("Member mit neuer ID "+result.insertId+" , der Benutzer-ID "+user_id+" und der Projekt-ID "+project_id+" angelegt.");
+    connection.end();
     cb(result);
   });
 }
@@ -467,6 +468,7 @@ function create_role_mysql (member_id, role_id, cb) {
     if (err) throw err;
     if (argv.debug)
       console.log("Rolle mit neuer ID "+result.insertId+" , der Member-ID "+member_id+" und der Rollen-ID "+role_id+" angelegt.");
+    connection.end();
     cb(result);
   });
 }
@@ -492,11 +494,12 @@ function add_repository_mysql (project_id, url, login, password, root_url, type,
   var insert = "INSERT INTO "+config.mysql.name+".repositories(project_id, url, login, password, root_url, type)";
   var values = "VALUES ("+project_id+", '"+url+"', '"+login+"', '"+password+"', '"+root_url+"', '"+type+"')";
   var query = insert+" "+values;
-
+  if (argv.debug)
+    console.log (query);
   connection.query(query, function(err, result) {
     if (err) throw err;
-    if (argv.debug)
-      console.log("Repository mit ID "+result.insertId+" für Projekt-ID "+project_id+" hinzugefügt.");
+    console.log("Repository mit ID "+result.insertId+" für Projekt-ID "+project_id+" hinzugefügt.");
+    connection.end();
     cb(result);
   });
 }
