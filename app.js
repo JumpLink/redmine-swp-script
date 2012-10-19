@@ -265,6 +265,8 @@ function get_semester () {
  * @param cb: callback-Funktion
  */ 
 function create_project_rest (name, description, identifier, links, parent, number, cb) {
+  if(argv.debug)
+    console.log("create_project_rest ("+name+", "+description+", "+identifier+", "+links+", "+parent+", "+number+", ..)");
   var project = {
     name: name,
     identifier: identifier,
@@ -761,10 +763,14 @@ function backup_all (cb) {
  * --template [Dateiname] --auto
  */
 function auto (cb) {
+  console.log("Erstelle Backups");
   backup_all (function () {
+    console.log("Deaktiviere alte Benutzer und Projekte");
     archive_all_projects_mysql (function () {
       lock_all_users_mysql ( function () {
+        console.log("Wende das Template an");
         load_template (argv.template, function () {
+          console.log("Speichere neues Template");
           save_template("backup_"+argv.template, function () {
             cb ();
           });
