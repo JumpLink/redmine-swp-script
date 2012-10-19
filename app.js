@@ -45,7 +45,8 @@ var optimist   = require('optimist')                                          //
                   .alias('Q', 'backupfiles').describe('Q', 'Backup der Dateianhänge erstellen')
                   .describe('start', 'Redmine starten')
                   .describe('stop', 'Redmine stoppen')
-                  .describe('auto', 'Backups durchführen, Benutzer/Projekte deaktiveren, Template anwenden');
+                  .describe('auto', 'Backups durchführen, Benutzer/Projekte deaktiveren, Template anwenden')
+                  .describe('testconnect', 'Testet die Verbindung zu Redmine und MySQL');
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -287,7 +288,7 @@ function create_project_rest (name, description, identifier, links, parent, numb
   redmine.postProject(project, function(data) {
      if (data instanceof Error) {
       console.log("Error: "+data);
-      throw new Error('data');
+      throw new Error('Konnte Projekt nicht anlegen.');
     }
     cb (data, number);
   });
@@ -652,7 +653,8 @@ function create_fh_users (cb) {
 function create_fh_projects (cb) {
   // Erzeugt Hauptproject
   create_project_rest (template.project.name, template.project.description, get_semester()+"-main", template.project.links, null, 0, function(main_project){
-    
+    if(argv.debug)
+      console.log(main_project);
     // Neue ID speichern
     template.project.id = main_project.project.id
     console.log("Hauptprojekt '"+main_project.project.name+"' mit ID "+main_project.project.id+" erfolgreich erstellt.");
@@ -769,18 +771,21 @@ function backup_all (cb) {
  * --template [Dateiname] --auto
  */
 function auto (cb) {
-  console.log("Erstelle Backups");
-  backup_all (function () {
-    connection.connect();
-    console.log("Deaktiviere alte Benutzer und Projekte");
-    archive_all_projects_mysql (function () {
-      lock_all_users_mysql ( function () {
-        console.log("Wende das Template an");
-        load_template (argv.template, function () {
-          console.log("Speichere neues Template");
-          save_template("backup_"+argv.template, function () {
-            connection.end();
-            cb ();
+  console.log("Teste Verbindung");
+  test_connection (function () {
+    console.log("Erstelle Backups");
+    backup_all (function () {
+      connection.connect();
+      console.log("Deaktiviere alte Benutzer und Projekte");
+      archive_all_projects_mysql (function () {
+        lock_all_users_mysql ( function () {
+          console.log("Wende das Template an");
+          load_template (argv.template, function () {
+            console.log("Speichere neues Template");
+            save_template("backup_"+argv.template, function () {
+              connection.end();
+              cb ();
+            });
           });
         });
       });
@@ -789,9 +794,48 @@ function auto (cb) {
 }
 
 /*
+ * Testet ob eine Verbindung zu Redmine und MySQL hergestellt werden kann.
+ *
+ * --testconnect
+ */
+function test_connection (cb) {
+  var mysql_test = false;
+  var redmine_test = false;
+  get_roles_mysql (function (roles) {
+    if(roles[0].id) {
+      mysql_test = true;
+      console.log ("Verbindung zu MySQL funktioniert.");
+      if (redmine_test)
+        cb (true);
+    } else {
+      throw new Error("Verbindung zu MySQL kann nicht hergestellt werden.");
+      cb ();
+    }
+  });
+  get_users_rest (function (users) {
+    if(users.limit) {
+      redmine_test = true;
+      console.log ("Verbindung zu Redmine funktioniert.");
+      if (mysql_test)
+        cb (true);
+    } else {
+      throw new Error("Verbindung zu Redmine kann nicht hergestellt werden.");
+      cb ();
+    }
+  });
+}
+
+/*
  * Skript nhand übergebene Option ausführen.
  */
 function run() {
+
+  if(argv.testconnect) {
+    connection.connect();
+    test_connection (function() {
+      connection.end();
+    });
+  }
 
   // Projekte ausgeben
   if (argv.getprojects)
@@ -811,7 +855,9 @@ function run() {
 
   // Rollen ausgeben
   if (argv.getroles) {
+    connection.connect();
     get_roles_mysql (function(rows, fields){
+      connection.end();
       if(argv.json)
         rows = JSON.stringify(rows, null, 2);
       console.log(rows);
@@ -825,24 +871,37 @@ function run() {
     });
 
   // User sperren
-  if (argv.lock)
-    lock_all_users_mysql ();
+  if (argv.lock) {
+    connection.connect();
+    lock_all_users_mysql (function () {
+      connection.end();
+    });
+  }
 
   // Projekte archivieren
-  if (argv.archive)
-    archive_all_projects_mysql ();
+  if (argv.archive) {
+    connection.connect();
+    archive_all_projects_mysql ( function () {
+      connection.end();
+    });
+  }
 
   // Semesterbezeichnung ausgeben
   if (argv.semester)
     console.log(get_semester ());
 
   // Template verarbeiten
-  if (argv.template && !argv.auto)
-    load_template (argv.template, function () {
-      save_template("backup_"+argv.template, function () {
-        process.exit(0); // WORKAROUND
+  if (argv.template && !argv.auto) {
+    test_connection (function () {
+      connection.connect();
+      load_template (argv.template, function () {
+        save_template("backup_"+argv.template, function () {
+          connection.end();
+          process.exit(0); // WORKAROUND
+        });
       });
     });
+  }
 
   if (argv.template && argv.auto)
     auto (function () {
