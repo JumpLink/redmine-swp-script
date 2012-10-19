@@ -47,8 +47,22 @@ Wenn das Skript nicht auf dem selben Server ausgeführt werden soll auf dem Redm
 grant all on database.* to 'user'@'%' IDENTIFIED BY 'passwort';
 ```
 
+Hinweis: Backups funktionieren derzeit nur lokal
+
 Bedienungsanleitung
 ===================
+Die empfohlene Vorgehensweise ist:
+Vollautomatisch
+-----------
+```
+./app.js --template lua.json.example --auto
+```
+Hierbei werden backups angefertigt, alle anderen Benutzer und Gruppen deaktiviert, das Template eingepflegt (in diesem Fall lua.json.example) und ein Backup-Template erstellt.
+Das Template muss vorher irgendwie generiert werden, unter templates/ abgelegt werden und dem [Beispiel-Template](https://github.com/JumpLink/redmine-swp-script/blob/master/templates/lua.json.example) entsprechen.
+
+Nur Template einpflegen
+-----------------------
+Es ist auch möglich ein Template ein zu plegen ohne dabei Backups anzufertigen oder etwas zu deaktivieren:
 ```
 ./app.js --template lua.json.example
 ```
@@ -56,21 +70,29 @@ Erzeugt Benutzer, Gruppen und Rechte entsprechend der Template-Datei lua.json.ex
 Es wird dabei eine backup_lua.json.example erstellt mit zusätzlichen Informationen wie der IDs in der Datenbank.
 
 
-Mit Hilfe dieser Backup-Template-Datei kann der Vorgang wieder rückgänig gemacht werden:
+Template rückgängig machen
+--------------------------
+Mit Hilfe der Backup-Template-Datei (wird automatisch nach dem einpflegen einer Template angefertigt) kann der Vorgang wieder rückgänig gemacht werden:
 ```
 ./app.js --removetemp backup_lua.json.example
 ```
 
+Nur ein Datenbankbackup anfertigen
+----------------------------------
 Ein Backup der Datenbank nach backup/db/ kann wie folgt angefertigt werden:
 ```
 ./app.js --backup 
 ```
 
+Ein Datenbankbackup wiederhergestellen
+--------------------------------------
 Und auch wiederhergestellt werden:
 ```
 ./app.js --restoredb [Backupdateiname]
 ```
 
+Debug-Modus
+-----------
 Für eine ausführlichere Ausgabe kann der Debug-Modus aktiviert werden:
 
 ```
@@ -123,15 +145,9 @@ Diese Gruppen werden unter Redmine als Projekt behandelt, stellen im Software-Pr
 #### groups[#].users
 * groups[#].users: [...]
 
-### Valide
-
-Das Attribut groups muss die gleiche Länge haben wie die Summe der groups-Längen innerhalb aller subproject-Attribute.
-
-Die Länge dieses Arrays groups muss der Länge des Arrays aus groups innerhalb aller project.subprojects entsprechen.
-
 Siehe auch
 --------
 * https://github.com/GraemeF/redminer
 * https://github.com/danwrong/restler
-* https://github.com/JumpLink/node-redmine
 * http://www.redmine.org/projects/redmine/wiki/Rest_api
+* https://github.com/felixge/node-mysql
