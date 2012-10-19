@@ -197,9 +197,10 @@ function restore_attachments () {
 function archive_all_projects_mysql (cb) {
   connection.query('update '+config.mysql.name+'.projects set status=9 where status=1', function(err, rows, fields) {
    if (err) throw err;
+   cb ();
   });
   //connection.end();
-  cb ();
+  
 }
 
 /*
@@ -211,9 +212,9 @@ function archive_all_projects_mysql (cb) {
 function lock_all_users_mysql (cb) {
   connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!="ars" and login!="si" and login!="admin"', function(err, rows, fields) {
    if (err) throw err;
+   cb ();
   });
   //connection.end();
-  cb ();
 }
 
 /*
@@ -750,7 +751,9 @@ function save_template (filename, cb) {
  * --backupall
  */
 function backup_all (cb) {
+  console.log("Backup für Datenbank");
   backup_database_mysql (function (error, stdout, stderr) {
+    console.log("Backup für Dateianhänge");
     backup_attachments (function (error, stdout, stderr) {
       cb();
     });
