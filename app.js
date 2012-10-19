@@ -14,7 +14,7 @@ var json_file  = require(__dirname+'/json.js');                               //
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
                   .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R'])
-                  .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T', 'k'])
+                  .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T', 'k', 'K'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
                   .alias('c', 'configpath').default('c', 'config/').describe('c', 'Alternatives Config-Verzeichnis verwenden')
@@ -154,6 +154,7 @@ function backup_attachments () {
   var mkdir = "mkdir -p "+__dirname+argv.backuppath+"files/ ;";
   var backup = "sudo tar zcPfv "+__dirname+argv.backuppath+"files/redmine_attachments_`date +%F_%T`.tar.gz "+config.redmine.path+"/files ;";
   var command = mkdir+" "+backup;
+  console.log ("Bitte Passwort für Dateizugriff auf "+config.redmine.path+"/files eingeben");
   if(argv.debug) console.log(command);
   exec(command, function (error, stdout, stderr) {
     console.log(stdout);
@@ -168,6 +169,7 @@ function backup_attachments () {
 function restore_attachments () {
   var command = "sudo tar xvPf "+__dirname+argv.backuppath+argv.restorefiles;
   if(argv.debug)console.log(command);
+  console.log ("Bitte Passwort für Dateizugriff auf "+config.redmine.path+"/files eingeben");
   exec(command, function (error, stdout, stderr) {
     console.log(stdout);
     if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
