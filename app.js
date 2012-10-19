@@ -13,7 +13,7 @@ var moment     = require('moment-range');                                     //
 var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
-                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R', 'start', 'stop'])
+                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R', 'start', 'stop', 'auto'])
                   .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T', 'k', 'K'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
@@ -44,7 +44,7 @@ var optimist   = require('optimist')                                          //
                   .alias('o', 'backupname').default('o', '<table>_<date>.gz').describe('o', 'Backup-Zieldateiname')
                   .alias('Q', 'backupfiles').describe('Q', 'Backup der Dateianhänge erstellen')
                   .describe('start', 'Redmine starten')
-                  .describe('stop', 'Redmine stoppen');
+                  .describe('stop', 'Redmine stoppen')
                   .describe('auto', 'Backups durchführen, Benutzer/Projekte deaktiveren, Template anwenden');
 
 //Optionen laden
@@ -97,13 +97,14 @@ var template;
  *
  * --start
  */ 
-function start_redmine() {
+function start_redmine(cb) {
   var http = "sudo ruby "+config.redmine.path+"/script/server -p 80 webrick -e production -d ;";
   var https = "sudo ruby "+config.redmine.path+"/script/ssl_server -p 443 webrick -e production -d ;";
   var command = http+" "+https;
   if(argv.debug) console.log(command);
-  exec(child_process.exec(command, /*, options, callback, */);, function (error, stdout, stderr) {
+  exec(command, function (error, stdout, stderr) {
     if (argv.debug) { console.log(stdout); if(stderr) console.log(stderr); if(error) console.log(error); }
+    cb ();
   });
 }
 
@@ -112,10 +113,11 @@ function start_redmine() {
  *
  * --stop
  */ 
-function stop_redmine () {
+function stop_redmine (cb) {
   exec("sudo killall ruby -9", function (error, stdout, stderr) {
     console.log(stdout);
     if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
+    cb ();
   });
 }
 
@@ -821,7 +823,7 @@ function run() {
     console.log(get_semester ());
 
   // Template verarbeiten
-  if (argv.template && !argv.auto))
+  if (argv.template && !argv.auto)
     load_template (argv.template, function () {
       save_template("backup_"+argv.template, function () {
         process.exit(0); // WORKAROUND
