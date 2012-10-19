@@ -803,6 +803,10 @@ function run() {
   // Dateianhänge sichern
   if (argv.backupfiles)
     backup_attachments ();
+
+  // Dateianhänge wiederherstellen
+  if (argv.restorefiles)
+    restore_attachments ();
 }
     
 run();
