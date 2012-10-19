@@ -44,7 +44,7 @@ Wenn das Skript nicht auf dem selben Server ausgeführt werden soll auf dem Redm
 * bind-address innerhalb von /etc/mysql/my.cnf auskommentieren.
 * mittels MySQL die Rechte der Datenbank anpassen:
 ```
-grant all on redmine.* to 'redmine'@'%' IDENTIFIED BY 'Equ7Aise';
+grant all on database.* to 'user'@'%' IDENTIFIED BY 'passwort';
 ```
 
 Bedienungsanleitung
