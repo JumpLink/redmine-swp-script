@@ -54,8 +54,10 @@ var config     =  {
                   }
 
 // Hilfe ausgeben
-if(argv.help)
+if(argv.help) {
   optimist.showHelp ();
+  process.exit(0);
+}
 
 // Redmine mit entsprechender Config
 var redmine = new Redmine({
@@ -150,7 +152,7 @@ function restore_database_mysql (filename) {
  */
 function backup_attachments () {
   var mkdir = "mkdir -p "+__dirname+argv.backuppath+"files/ ;";
-  var backup = "tar zcPfv "+__dirname+argv.backuppath+"files/redmine_attachments_`date +%F_%T`.tar.gz "+config.redmine.path+"/files ;";
+  var backup = "sudo tar zcPfv "+__dirname+argv.backuppath+"files/redmine_attachments_`date +%F_%T`.tar.gz "+config.redmine.path+"/files ;";
   var command = mkdir+" "+backup;
   if(argv.debug) console.log(command);
   exec(command, function (error, stdout, stderr) {
@@ -164,7 +166,7 @@ function backup_attachments () {
  * --restorefiles
  */
 function restore_attachments () {
-  var command = "tar xvPf "+__dirname+argv.backuppath+argv.restorefiles;
+  var command = "sudo tar xvPf "+__dirname+argv.backuppath+argv.restorefiles;
   if(argv.debug)console.log(command);
   exec(command, function (error, stdout, stderr) {
     console.log(stdout);
@@ -189,21 +191,22 @@ function archive_all_projects_mysql () {
  * status: 1 = entsperrt; 3 = gesperrt
  */ 
 function lock_all_users_mysql () {
-  connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!=ars and login!=si and login!=admin', function(err, rows, fields) {
+  connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!="ars" and login!="si" and login!="admin"', function(err, rows, fields) {
    if (err) throw err;
   });
   connection.end();
 }
 
 /*
- * Berechnet die aktuelle Semesterbezeichnung und gibt sie als String zurück
+ * Berechnet die aktuelle Semesterbezeichnung und gibt sie als String zurück.
+ * Evtl muss auf dem Rechner vorher Uhr synchronisiert werden: sudo ntpdate ptbtime1.ptb.de
  */ 
 function get_semester () {
   var now = moment();
 
   // Wintersemester vor Silvester
   var ws_before = {
-    start : moment().month(9).date(1).hours(0).minutes(0).seconds(0).milliseconds(0),                        // 1. Oktober
+    start : moment().month(9).date(1).hours(0).minutes(0).seconds(0).milliseconds(0),      // 1. Oktober
     end : moment().month(11).date(31).hours(23).minutes(59).seconds(59).milliseconds(999)  // 31. Dezember
   }
 
@@ -525,6 +528,7 @@ function generate_group_identifier (group_name) {
 };
 
 /*
+ * Erzeugt Memberships für alle neuen Benutzer aber nur für das übergebene Projekt
  * id 3 = Administrator
  * id 4 = Entwickler
  */
@@ -574,8 +578,7 @@ function create_fh_membership_for_projects (projects, owner_role_id, others_role
 };
 
 /*
- * id 3 = Administrator
- * id 4 = Entwickler
+ * Erzeugt Memberships für jeden neuen Benutzer und jedes neue Projekt
  */
 function create_fh_membership (cb) {
   if(argv.debug)
