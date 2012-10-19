@@ -167,7 +167,7 @@ function backup_attachments () {
  * --restorefiles
  */
 function restore_attachments () {
-  var command = "sudo tar xvPf "+__dirname+argv.backuppath+argv.restorefiles;
+  var command = "sudo tar xvPf "+__dirname+argv.backuppath+"files/"+argv.restorefiles;
   if(argv.debug)console.log(command);
   console.log ("Bitte Passwort für Dateizugriff auf "+config.redmine.path+"/files eingeben");
   exec(command, function (error, stdout, stderr) {
