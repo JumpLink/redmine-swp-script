@@ -198,7 +198,7 @@ function archive_all_projects_mysql (cb) {
   connection.query('update '+config.mysql.name+'.projects set status=9 where status=1', function(err, rows, fields) {
    if (err) throw err;
   });
-  connection.end();
+  //connection.end();
   cb ();
 }
 
@@ -212,7 +212,7 @@ function lock_all_users_mysql (cb) {
   connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!="ars" and login!="si" and login!="admin"', function(err, rows, fields) {
    if (err) throw err;
   });
-  connection.end();
+  //connection.end();
   cb ();
 }
 
