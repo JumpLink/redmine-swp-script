@@ -145,15 +145,9 @@ Diese Gruppen werden unter Redmine als Projekt behandelt, stellen im Software-Pr
 #### groups[#].users
 * groups[#].users: [...]
 
-### Valide
-
-Das Attribut groups muss die gleiche Länge haben wie die Summe der groups-Längen innerhalb aller subproject-Attribute.
-
-Die Länge dieses Arrays groups muss der Länge des Arrays aus groups innerhalb aller project.subprojects entsprechen.
-
 Siehe auch
 --------
 * https://github.com/GraemeF/redminer
 * https://github.com/danwrong/restler
-* https://github.com/JumpLink/node-redmine
 * http://www.redmine.org/projects/redmine/wiki/Rest_api
+* https://github.com/felixge/node-mysql
