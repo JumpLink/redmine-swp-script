@@ -201,7 +201,6 @@ function archive_all_projects_mysql (cb) {
    // connection.end();
    cb ();
   });
-  
 }
 
 /*
@@ -323,12 +322,13 @@ function get_projects_rest (cb) {
 /*
  * Einen Benutzer anlegen
  */
-function create_user_rest (login, firstname, lastname, mail, number, cb) {
+function create_user_rest (login, firstname, lastname, mail, auth_source_id, number, cb) {
   var user = {
     login: login,
     firstname: firstname,
     lastname: lastname,
-    mail: mail
+    mail: mail,
+    auth_source_id: auth_source_id
   };
   redmine.postUser(user, function(data) {
     // FIXME
@@ -395,7 +395,17 @@ function get_roles_mysql (cb) {
 }
 
 /*
- * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
+ * Gibt die LDAP-Einstellungen an Callback weiter
+ */ 
+function get_ldap_mysql (cb) {
+  connection.query('select * from '+config.mysql.name+'.auth_sources', function(err, rows, fields) {
+   if (err) throw err;
+   cb (rows, fields);
+  });
+}
+
+/*
+ * FIXME funktioniert nicht mit verwendeter Redmine-Version
  * Alle Gruppen an Callback übergeben mittels Rest-API
  */ 
 function get_groups_rest (cb) {
@@ -409,7 +419,7 @@ function get_groups_rest (cb) {
 };
 
 /*
- * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
+ * FIXME funktioniert nicht mit verwendeter Redmine-Version
  * Gruppe über die Rest-API erstellen
  */ 
 function create_group_rest (name, user_ids, cb) {
@@ -427,7 +437,7 @@ function create_group_rest (name, user_ids, cb) {
 };
 
 /*
- * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
+ * FIXME funktioniert nicht mit verwendeter Redmine-Version
  * Siehe auch: create_membership_mysql
  */ 
 function create_membership_rest (project_id, user_id, role_ids, cb) {
@@ -630,8 +640,9 @@ function create_fh_membership (cb) {
 function create_fh_users (cb) {
   // Durchläut Benutzer
   for (var i in template.users) {
+    var auth_source_id = 1; //  LDAP-Replica-Stud
     // Benutzer anlegen
-    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, i, function(data, number){
+    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, auth_source_id, i, function(data, number){
       
       g_users++;
       template.users[number].id = data.user.id;
@@ -706,7 +717,7 @@ function create_fh_projects (cb) {
  */ 
 function load_template (filename, cb) {
   template = json_file.open(argv.templatepath+filename);
-  console.log("Ermittel Benutzerrypen");
+  console.log("Ermittle Benutzertypen");
   save_user_types_template (function () {
     console.log("Erstelle Projekte");
     create_fh_projects (function() {
