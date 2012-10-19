@@ -197,7 +197,7 @@ function restore_attachments () {
 function archive_all_projects_mysql (cb) {
   connection.query('update '+config.mysql.name+'.projects set status=9 where status=1', function(err, rows, fields) {
    if (err) throw err;
-   connection.end();
+   // connection.end();
    cb ();
   });
   
@@ -212,7 +212,7 @@ function archive_all_projects_mysql (cb) {
 function lock_all_users_mysql (cb) {
   connection.query('update '+config.mysql.name+'.users set status=3 where status=1 and login!="ars" and login!="si" and login!="admin"', function(err, rows, fields) {
    if (err) throw err;
-   connection.end();
+   // connection.end();
    cb ();
   });
 }
@@ -388,7 +388,7 @@ function get_roles_rest (cb) {
 function get_roles_mysql (cb) {
   connection.query('select id,name from '+config.mysql.name+'.roles', function(err, rows, fields) {
    if (err) throw err;
-   connection.end();
+   // connection.end();
    cb (rows, fields);
   });
 }
@@ -453,7 +453,7 @@ function create_member_mysql (project_id, user_id, cb) {
     if (err) throw err;
     if (argv.debug)
       console.log("Member mit neuer ID "+result.insertId+" , der Benutzer-ID "+user_id+" und der Projekt-ID "+project_id+" angelegt.");
-    connection.end();
+    // connection.end();
     cb(result);
   });
 }
@@ -468,7 +468,7 @@ function create_role_mysql (member_id, role_id, cb) {
     if (err) throw err;
     if (argv.debug)
       console.log("Rolle mit neuer ID "+result.insertId+" , der Member-ID "+member_id+" und der Rollen-ID "+role_id+" angelegt.");
-    connection.end();
+    // connection.end();
     cb(result);
   });
 }
@@ -499,7 +499,7 @@ function add_repository_mysql (project_id, url, login, password, root_url, type,
   connection.query(query, function(err, result) {
     if (err) throw err;
     console.log("Repository mit ID "+result.insertId+" für Projekt-ID "+project_id+" hinzugefügt.");
-    connection.end();
+    // connection.end();
     cb(result);
   });
 }
@@ -771,6 +771,7 @@ function backup_all (cb) {
 function auto (cb) {
   console.log("Erstelle Backups");
   backup_all (function () {
+    connection.connect();
     console.log("Deaktiviere alte Benutzer und Projekte");
     archive_all_projects_mysql (function () {
       lock_all_users_mysql ( function () {
@@ -778,6 +779,7 @@ function auto (cb) {
         load_template (argv.template, function () {
           console.log("Speichere neues Template");
           save_template("backup_"+argv.template, function () {
+            connection.end();
             cb ();
           });
         });
