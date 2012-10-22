@@ -17,6 +17,7 @@ sudo apt-add-repository ppa:chris-lea/node.js
 sudo apt-get update
 sudo apt-get install nodejs nodejs-dev npm git-core
 git clone git://github.com/JumpLink/redmine-swp-script.git
+cd redmine-swp-script/
 npm install
 ```
 Npm installiert dabei automatisch die Abhängigkeiten nach, dies sind:
