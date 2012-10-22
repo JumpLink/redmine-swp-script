@@ -24,8 +24,7 @@ Npm installiert dabei automatisch die Abhängigkeiten nach, dies sind:
 * optimist in Version 0.3.5
 * mysql in Version 2.0.0-alpha3
 * moment-range in Version 0.1.1
-* restler in Version 2.0.1 und
-und meinen Fork von [node-redmine](https://github.com/JumpLink/node-redmine).
+* restler in Version 2.0.1 und meinen Fork von [node-redmine](https://github.com/JumpLink/node-redmine).
 
 Anschließend die Dateien mysql.json.example, redmine.json.example und svn.json.example umbenennen und anpassen:
 ```
