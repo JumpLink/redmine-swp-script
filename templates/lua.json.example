@@ -70,6 +70,36 @@
       "student_id": "inf6666",
       "lastname": "test6",
       "firstname": "test6"
+    },
+    {
+      "student_id": "minf7777",
+      "lastname": "test7",
+      "firstname": "test7"
+    },
+    {
+      "student_id": "inf8888",
+      "lastname": "test8",
+      "firstname": "test8"
+    },
+    {
+      "student_id": "inf9999",
+      "lastname": "test9",
+      "firstname": "test9"
+    },
+    {
+      "student_id": "inf1010",
+      "lastname": "test",
+      "firstname": "10"
+    },
+    {
+      "student_id": "inf11",
+      "lastname": "test",
+      "firstname": "11"
+    },
+    {
+      "student_id": "inf1212",
+      "lastname": "test",
+      "firstname": "12"
     }
   ],
 

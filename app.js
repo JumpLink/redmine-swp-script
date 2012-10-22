@@ -13,7 +13,7 @@ var moment     = require('moment-range');                                     //
 var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
-                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R', 'start', 'stop', 'auto', 'getldap'])
+                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R', 'start', 'stop', 'auto', 'getldap', 'check'])
                   .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T', 'k', 'K'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
@@ -48,7 +48,8 @@ var optimist   = require('optimist')                                          //
                   .describe('auto', 'Backups durchführen, Benutzer/Projekte deaktiveren, Template anwenden')
                   .describe('testconnect', 'Testet die Verbindung zu Redmine und MySQL')
                   .describe('auth_id', 'Alternative LDAP-Authentifizierung-ID verweden').default('auth_id', 1)
-                  .describe('getldap', 'Authentifizierungsarten ausgeben');
+                  .describe('getldap', 'Authentifizierungsarten ausgeben')
+                  .describe('check', 'Überprüft ob das Template valide ist')
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -125,6 +126,100 @@ function stop_redmine (cb) {
 }
 
 /*
+ * Überprüft das project-Attribute in der Template
+ */ 
+function validate_template_project(cb) {
+  var groups_in_subprojects_count = 0;
+  if(!("project" in template)){ throw new Error('"project" fehlt im template'); }
+  else{
+    if(!("name" in template.project)){ throw new Error('"name" fehlt im template.project'); }
+    if(!("description" in template.project)){ throw new Error('"project" fehlt im template.project'); }
+    if(!("links" in template.project)){ throw new Error('"links" fehlt im template.project'); }
+    if(!("subprojects" in template.project)){ throw new Error('"subprojects" fehlt im template.project'); }
+    else {
+      for (var sub in template.project.subprojects) {
+        if(!("name" in template.project.subprojects[sub])){ throw new Error('"name" fehlt im template.project.subprojects['+sub+']'); }
+        if(!("description" in template.project.subprojects[sub])){ throw new Error('"description" fehlt im template.project.subprojects['+sub+']'); }
+        if(!("groups" in template.project.subprojects[sub])){ throw new Error('"groups" fehlt im template.project.subprojects['+sub+']'); }
+        else {
+          if(template.project.subprojects[sub].groups.length <= 0){ throw new Error('Keine Gruppe in template.project.subprojects['+sub+'].groups'); }
+          for (var grp in template.project.subprojects[sub].groups) {
+            ++groups_in_subprojects_count;
+            if((grp == template.project.subprojects[sub].groups.length-1) && (sub == template.project.subprojects.length-1)) {
+               cb(true, groups_in_subprojects_count);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/*
+ * Überprüft das users-Attribute in der Template
+ */ 
+function validate_template_users(cb) {
+  if(!("users" in template)){ throw new Error('"users" fehlt im template'); }
+  else {
+    for (var usr in template.users) {
+      if(!("student_id" in template.users[usr])){ throw new Error('"student_id" fehlt im template.users['+usr+']'); }
+      if(!("lastname" in template.users[usr])){ throw new Error('"lastname" fehlt im template.users['+usr+']'); }
+      if(!("firstname" in template.users[usr])){ throw new Error('"firstname" fehlt im template.users['+usr+']'); }
+      if(usr == template.users.length-1) { cb(true); return;}
+    }
+  }
+}
+
+/*
+ * Überprüft das groups-Attribute in der Template
+ */ 
+function validate_template_groups(cb) {
+  var students_in_groups_count = 0;
+  if(!("groups" in template)){ throw new Error('"groups" fehlt im template'); cb(false); return;}
+  else {
+    for (var grp in template.groups) {
+      if(!("name" in template.groups[grp])) { throw new Error('"name" fehlt im template.groups['+grp+']'); }
+      if(!("type" in template.groups[grp])) { throw new Error('"type" fehlt im template.groups['+grp+']'); }
+      if(!("users" in template.groups[grp])) { throw new Error('"users" fehlt im template.groups['+grp+']'); }
+      else {
+        if(template.groups[grp].users.length <= 0){ throw new Error('Kein Student in template.groups['+grp+'].users'); }
+        for (var usr in template.groups[grp].users) {
+          ++students_in_groups_count;
+          if(grp == template.groups.length-1 && usr == template.groups[grp].users.length-1) { cb(true, students_in_groups_count); return;}
+        }
+      }
+    }
+  }
+}
+
+/*
+ *  Überprüft das komplette Template
+ *
+ * --check
+ */
+function validate_template(filename, cb) {
+  cb;
+  if(!template)
+    template = json_file.open(argv.templatepath+filename);
+
+  validate_template_project(function(project_okay, groups_in_subprojects_count) {
+    if(groups_in_subprojects_count != template.groups.length) { throw new Error('Die Anzahl der Gruppen ('+groups_in_subprojects_count+') in Unterprojekten stimmt nicht mit der Anzahl der allgemeinen Gruppen ('+template.groups.length+') überein.'); }
+    if(project_okay) {
+      console.log("Projekte sind i.O.");
+      validate_template_users(function(users_okay) {
+        if(users_okay) {
+          console.log("Benutzer sind i.O.");
+          validate_template_groups(function(groups_okay, students_in_groups_count) {
+            if(students_in_groups_count != template.users.length) { throw new Error('Die Anzahl der Studenten ('+students_in_groups_count+') in Gruppen stimmt nicht mit der Anzahl der allgemeinen Studenten ('+template.users.length+') überein.'); }
+            if(groups_okay) { console.log("Gruppen sind i.O."); cb(true); return; }
+          });
+        }
+      });
+    }
+  });
+}
+
+/*
  * Backup der Redmine-Datenbank erstellen
  * Bedingung: mysqldump muss installiert sein.
  */ 
@@ -140,9 +235,7 @@ function backup_database_mysql (cb) {
         if (argv.debug) { if(stderr) console.log(stderr); if(error) console.log(error); }
         cb(error, stdout, stderr);
       });
-    } else {
-      console.log("Fehler: /usr/bin/mysqldump nicht gefunden!\nBitte mysql-server installieren oder dieses direkt Skript auf dem Server ausführen.");
-    }
+    } else throw new Error("Fehler: /usr/bin/mysqldump nicht gefunden!\nBitte mysql-server installieren oder dieses direkt Skript auf dem Server ausführen.");
   });
 }
 
@@ -788,17 +881,20 @@ function auto (cb) {
   connection.connect();
   console.log("Teste Verbindung");
   test_connection (function () {
-    console.log("Erstelle Backups");
-    backup_all (function () {
-      console.log("Deaktiviere alte Benutzer und Projekte");
-      archive_all_projects_mysql (function () {
-        lock_all_users_mysql ( function () {
-          console.log("Wende das Template an");
-          load_template (argv.template, function () {
-            console.log("Speichere neues Template");
-            save_template("backup_"+argv.template, function () {
-              connection.end();
-              cb ();
+    console.log("Überprüfe Template");
+    validate_template(argv.template, function() {
+      console.log("Erstelle Backups");
+      backup_all (function () {
+        console.log("Deaktiviere alte Benutzer und Projekte");
+        archive_all_projects_mysql (function () {
+          lock_all_users_mysql ( function () {
+            console.log("Wende das Template an");
+            load_template (argv.template, function () {
+              console.log("Speichere neues Template");
+              save_template("backup_"+argv.template, function () {
+                connection.end();
+                cb ();
+              });
             });
           });
         });
@@ -844,12 +940,23 @@ function test_connection (cb) {
  */
 function run() {
 
+  // Überprüfe ob eine Verbindung hergestellt werden kann
   if(argv.testconnect) {
     connection.connect();
     test_connection (function() {
       connection.end();
     });
   }
+
+  if(argv.check)
+    if(argv.template)
+      validate_template(argv.template, function(template_okay) {
+        console.log("Template sieht gut aus.");
+      });
+    else {
+      optimist.showHelp();
+      console.log('\ndu hast "--template dateiname" vergessen.');
+    }
 
   // Projekte ausgeben
   if (argv.getprojects)
@@ -916,7 +1023,7 @@ function run() {
     console.log(get_semester ());
 
   // Template verarbeiten
-  if (argv.template && !argv.auto) {
+  if (argv.template && !argv.auto && !argv.check) {
     test_connection (function () {
       connection.connect();
       load_template (argv.template, function () {
@@ -928,7 +1035,7 @@ function run() {
     });
   }
 
-  if (argv.template && argv.auto)
+  if (argv.template && argv.auto && !argv.check)
     auto (function () {
       console.log("done");
     });
