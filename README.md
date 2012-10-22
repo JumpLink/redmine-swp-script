@@ -57,7 +57,7 @@ Hinweis: Backups funktionieren derzeit nur lokal
 
 Bedienungsanleitung
 ===================
-Vorbedinungen
+Vorbedingungen
 -------------
 * Es darf keine erforderlichen benutzerdefinierten Felder geben.
  * Die benutzerdefinierten Felder sind unter deine.redmine.domain/custom_fields oder unter Redmine-Startseite->Administration->Benutzerdefinierte Felder zu finden.
