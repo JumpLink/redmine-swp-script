@@ -13,7 +13,7 @@ var moment     = require('moment-range');                                     //
 var json_file  = require(__dirname+'/json.js');                               // Json-Dateien laden
 var optimist   = require('optimist')                                          // option-tools
                   .usage('Aufruf: $0 [OPTION]... [DATEI]...')                 // Hilfe
-                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R', 'start', 'stop', 'auto'])
+                  .boolean(['b','h','s','d','l','a', 'G', 'g', 'j', 'R', 'start', 'stop', 'auto', 'getldap'])
                   .string(['c','m','r','t','p','N','D','I','B','o', 'S', 'M', 'T', 'k', 'K'])
                   .alias('h', 'help').describe('h', 'Zeigt diese Hilfe an')
                   .alias('j', 'json').default('j', true).describe('j', 'Ausgabe als JSON-String')
@@ -46,7 +46,9 @@ var optimist   = require('optimist')                                          //
                   .describe('start', 'Redmine starten')
                   .describe('stop', 'Redmine stoppen')
                   .describe('auto', 'Backups durchführen, Benutzer/Projekte deaktiveren, Template anwenden')
-                  .describe('testconnect', 'Testet die Verbindung zu Redmine und MySQL');
+                  .describe('testconnect', 'Testet die Verbindung zu Redmine und MySQL')
+                  .describe('auth_id', 'Alternative LDAP-Authentifizierung-ID verweden').default('auth_id', 1)
+                  .describe('getldap', 'Authentifizierungsarten ausgeben');
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -396,6 +398,8 @@ function get_roles_mysql (cb) {
 
 /*
  * Gibt die LDAP-Einstellungen an Callback weiter
+ * 
+ * --getldap
  */ 
 function get_ldap_mysql (cb) {
   connection.query('select * from '+config.mysql.name+'.auth_sources', function(err, rows, fields) {
@@ -640,9 +644,8 @@ function create_fh_membership (cb) {
 function create_fh_users (cb) {
   // Durchläut Benutzer
   for (var i in template.users) {
-    var auth_source_id = 1; //  LDAP-Replica-Stud
     // Benutzer anlegen
-    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, auth_source_id, i, function(data, number){
+    create_user_rest(template.users[i].student_id, template.users[i].firstname, template.users[i].lastname, template.users[i].student_id+"@"+argv.mail, argv.auth_id, i, function(data, number){
       
       g_users++;
       template.users[number].id = data.user.id;
@@ -868,6 +871,17 @@ function run() {
   if (argv.getroles) {
     connection.connect();
     get_roles_mysql (function(rows, fields){
+      connection.end();
+      if(argv.json)
+        rows = JSON.stringify(rows, null, 2);
+      console.log(rows);
+    });
+  }
+
+  // Authentifizierungsarten ausgeben
+  if (argv.getldap) {
+    connection.connect();
+    get_ldap_mysql(function(rows, fields){
       connection.end();
       if(argv.json)
         rows = JSON.stringify(rows, null, 2);
