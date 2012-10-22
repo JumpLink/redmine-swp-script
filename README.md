@@ -73,8 +73,20 @@ Vollautomatisch
 ```
 ./app.js --template lua.json.example --auto
 ```
-Hierbei werden Backups angefertigt, alle anderen Benutzer und Gruppen deaktiviert, dass Template eingepflegt (in diesem Fall lua.json.example) und ein Backup-Template erstellt.
+* Hierbei wird geprüft ob das Template valide ist,
+* Backups angefertigt,
+* alle anderen Benutzer und Gruppen deaktiviert,
+* dass Template eingepflegt (in diesem Fall lua.json.example)
+* und ein Backup-Template erstellt.
+
 Das Template muss vorher irgendwie generiert, unter templates/ abgelegt werden und dem [Beispiel-Template](https://github.com/JumpLink/redmine-swp-script/blob/master/templates/lua.json.example) entsprechen.
+
+Nur Template überprüfen
+-------------------
+Ob das Template valide ist kann wie folgt überprüft werden:
+```
+./app.js --template lua.json.example --check
+```
 
 Nur Template einpflegen
 -----------------------
