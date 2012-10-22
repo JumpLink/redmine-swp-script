@@ -49,7 +49,7 @@ var optimist   = require('optimist')                                          //
                   .describe('testconnect', 'Testet die Verbindung zu Redmine und MySQL')
                   .describe('auth_id', 'Alternative LDAP-Authentifizierung-ID verweden').default('auth_id', 1)
                   .describe('getldap', 'Authentifizierungsarten ausgeben')
-                  .describe('check', 'Überprüft ob das Template valide ist')
+                  .describe('check', 'Überprüft ob das Template valide ist');
 
 //Optionen laden
 var argv       = optimist.argv;
@@ -97,7 +97,7 @@ var g_users = 0;
 var template;
 
 /*
- * Redmine-Server starten
+ * Redmine-Server starten.
  *
  * --start
  */ 
@@ -113,7 +113,8 @@ function start_redmine(cb) {
 }
 
 /*
- * Redmine-Server stoppen TODO eleganter
+ * TODO eleganter umsetzen
+ * Redmine-Server stoppen.
  *
  * --stop
  */ 
@@ -220,7 +221,8 @@ function validate_template(filename, cb) {
 }
 
 /*
- * Backup der Redmine-Datenbank erstellen
+ * Backup der Redmine-Datenbank erstellen.
+ *
  * Bedingung: mysqldump muss installiert sein.
  */ 
 function backup_database_mysql (cb) {
@@ -241,6 +243,7 @@ function backup_database_mysql (cb) {
 
 /*
  * Backup der Redmine-Datenbank wiederherstellen.
+ *
  * --restoredb
  */ 
 function restore_database_mysql (filename) {
@@ -254,6 +257,7 @@ function restore_database_mysql (filename) {
 
 /*
  * Backup der Attachments erstellen.
+ *
  * --backupfiles
  */
 function backup_attachments (cb) {
@@ -314,7 +318,7 @@ function lock_all_users_mysql (cb) {
 
 /*
  * Berechnet die aktuelle Semesterbezeichnung und gibt sie als String zurück.
- * Evtl muss auf dem Rechner vorher Uhr synchronisiert werden: sudo ntpdate ptbtime1.ptb.de
+ * Evtl muss auf dem Rechner vorher die Uhrzeit synchronisiert werden: sudo ntpdate ptbtime1.ptb.de
  *
  * --semester
  */ 
@@ -464,7 +468,8 @@ function get_users_rest (cb) {
 
 /*
  * FIXME funktioniert nicht mit verwendeter aktueller Redmine-Version
- * Alle Rollen im JSON-Format an cb übergeben.
+ * Alle Rollen an cb übergeben.
+ *
  * Siehe auch: get_roles_mysql
  */ 
 function get_roles_rest (cb) {
@@ -478,7 +483,8 @@ function get_roles_rest (cb) {
 }
 
 /*
- * Alle Rollen als MySQL-Ausgabe ausgeben.
+ * Alle Rollen ausgeben (mittels MySQL).
+ *
  * Siehe auch: get_roles_rest
  */ 
 function get_roles_mysql (cb) {
@@ -490,7 +496,7 @@ function get_roles_mysql (cb) {
 }
 
 /*
- * Gibt die LDAP-Einstellungen an Callback weiter
+ * Gibt die LDAP-Einstellungen an Callback weiter (mittels MySQL).
  * 
  * --getldap
  */ 
@@ -552,7 +558,7 @@ function create_membership_rest (project_id, user_id, role_ids, cb) {
 };
 
 /*
- * Erstellt ein neues Projektmitglied mittels MySQL
+ * Weist ein Benutzer ein Projekt zu (mittels MySQL).
  */
 function create_member_mysql (project_id, user_id, cb) {
   var query = "INSERT INTO "+config.mysql.name+".members(user_id, project_id, created_on) VALUES ("+user_id+", "+project_id+", NOW() )";
@@ -567,7 +573,7 @@ function create_member_mysql (project_id, user_id, cb) {
 }
 
 /*
- * Erteilt einem Projektmitglied Rechte mittels MySQL
+ * Erteilt einem Projektmitglied Rechte mittels MySQL.
  */
 function create_role_mysql (member_id, role_id, cb) {
   var query = "INSERT INTO "+config.mysql.name+".member_roles(member_id, role_id) VALUES ("+member_id+", "+role_id+" )";
@@ -582,7 +588,8 @@ function create_role_mysql (member_id, role_id, cb) {
 }
 
 /*
- * Erstellt ein neues Projektmitglied und weist diesem Rechte mittes Rest-API zu.
+ * Weist ein Benutzer ein Projekt zu und erteilt diesem Rechte (mittels MySQL).
+ *
  * siehe auch: create_membership_rest
  */ 
 function create_membership_mysql (project_id, user_id, role_id, cb) {
@@ -595,8 +602,7 @@ function create_membership_mysql (project_id, user_id, role_id, cb) {
 };
 
 /*
- * Erstellt ein neues Projektmitglied und weist diesem Rechte zu mittes Rest-API
- * siehe auch: create_membership_rest
+ * Fügt einem Projekt ein Repository hinzu.
  */ 
 function add_repository_mysql (project_id, url, login, password, root_url, type, cb) {
   var insert = "INSERT INTO "+config.mysql.name+".repositories(project_id, url, login, password, root_url, type)";
@@ -640,7 +646,7 @@ function get_user_type_template (user_name, number, cb) {
 }
 
 /*
- * Speichert den Gruppentyp des Benutzers zum Benutzer in die Template
+ * Speichert den Gruppentyp des Benutzers zum Benutzer in die Template.
  */ 
 function save_user_types_template (cb) {
   for (var i in template.users) {
@@ -663,7 +669,8 @@ function generate_group_identifier (group_name) {
 };
 
 /*
- * Erzeugt Memberships für alle neuen Benutzer aber nur für das übergebene Projekt
+ * Erzeugt Memberships für alle neuen Benutzer aber nur für das übergebene Projekt.
+ *
  * id 3 = Administrator
  * id 4 = Entwickler
  */
@@ -713,7 +720,7 @@ function create_fh_membership_for_projects (projects, owner_role_id, others_role
 };
 
 /*
- * Erzeugt Memberships für jeden neuen Benutzer und jedes neue Projekt
+ * Erzeugt Memberships für jeden neuen Benutzer und jedes neue Projekt.
  */
 function create_fh_membership (cb) {
   if(argv.debug)
@@ -829,7 +836,7 @@ function load_template (filename, cb) {
 }
 
 /*
- * Löscht Benutzer und Gruppen aus einer Backup-Template
+ * Löscht Benutzer und Gruppen mit Hilfe einer Backup-Template.
  */ 
 function remove_from_template (filename, cb) {
   template = json_file.open(argv.templatepath+filename);
@@ -858,7 +865,7 @@ function save_template (filename, cb) {
 }
 
 /*
- * Datenbank und Dateianhänge sichern
+ * Datenbank und Dateianhänge sichern.
  *
  * --backupall
  */
