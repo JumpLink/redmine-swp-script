@@ -61,11 +61,11 @@ Vorbedingungen
 -------------
 * Es darf keine erforderlichen benutzerdefinierten Felder geben.
  * Die benutzerdefinierten Felder sind unter deine.redmine.domain/custom_fields oder unter Redmine-Startseite->Administration->Benutzerdefinierte Felder zu finden.
-* Der anzulegender Benutzer-Anmeldename (= Matrikelnummer) / die anzulegende Projekt-Kennung (= Semesterbezeichnung + Projektkürzel) darf nicht bereits vergeben sein.
+* Der anzulegende Benutzer-Anmeldename (= Matrikelnummer) / die anzulegende Projekt-Kennung (= Semesterbezeichnung + Projektkürzel) darf nicht bereits vergeben sein.
 * Die LDAP-Authentifizierung muss bereits eingerichtet sein.
  * Einstellbar unter deine.redmine.domain/ldap_auth_sources oder Redmine-Startseite->Administration->LDAP-Authentifizierung
- * Zur Selbstkontrolle ist es möglich, sich die vorhanden Authentifizierungs-Arten auszugeben: ```./app.js --getldap```.
- * Soll eine andere ID als 1 verwendet werden, kann sie mit der Option ```--auth_id #``` festgelegt werden.
+ * Zur Selbstkontrolle ist es möglich, sich die vorhanden Authentifizierungs-Arten ausgeben zu lassen: ```./app.js --getldap```.
+ * Soll eine andere ID als 1 verwendet werden, kann sie mit der Option ```--auth_id #``` (# ersetzen mit der gewünschten ID) festgelegt werden.
 
 Die empfohlene Vorgehensweise ist:
 Vollautomatisch
@@ -73,8 +73,8 @@ Vollautomatisch
 ```
 ./app.js --template lua.json.example --auto
 ```
-Hierbei werden backups angefertigt, alle anderen Benutzer und Gruppen deaktiviert, das Template eingepflegt (in diesem Fall lua.json.example) und ein Backup-Template erstellt.
-Das Template muss vorher irgendwie generiert werden, unter templates/ abgelegt werden und dem [Beispiel-Template](https://github.com/JumpLink/redmine-swp-script/blob/master/templates/lua.json.example) entsprechen.
+Hierbei werden Backups angefertigt, alle anderen Benutzer und Gruppen deaktiviert, dass Template eingepflegt (in diesem Fall lua.json.example) und ein Backup-Template erstellt.
+Das Template muss vorher irgendwie generiert, unter templates/ abgelegt werden und dem [Beispiel-Template](https://github.com/JumpLink/redmine-swp-script/blob/master/templates/lua.json.example) entsprechen.
 
 Nur Template einpflegen
 -----------------------
@@ -158,8 +158,14 @@ Diese Gruppen werden unter Redmine als Projekt behandelt, stellen im Software-Pr
 * groups[#].users: [...]
 * groups[#].type: "..."
 
+#### groups[#].name
+* z.B. "swp01"
+
 #### groups[#].users
-* groups[#].users: [...]
+* z.B. ["inf4444", "inf1111", "inf6666"]
+
+#### groups[#].type
+* "developer" oder "coordinator"
 
 Siehe auch
 --------
