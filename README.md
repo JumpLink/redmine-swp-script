@@ -55,6 +55,12 @@ grant all on database.* to 'user'@'%' IDENTIFIED BY 'passwort';
 
 Hinweis: Backups funktionieren derzeit nur lokal
 
+Anpassen
+========
+Das Skript kann durch Optionen beeinflusst werden, dafür einfach mal in die Hilfe schauen: ```./app.js --help```.
+
+Sollen bestimmte Benutzer nicht automatisch vom Skript deaktivert werden (z.B. sollte sich der Admin nicht selbst aussperren), muss das Skript derzeit noch [manuell bearbeitet](https://github.com/JumpLink/redmine-swp-script/blob/master/app.js#L311) werden.
+
 Bedienungsanleitung
 ===================
 Vorbedingungen
