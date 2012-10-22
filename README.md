@@ -17,6 +17,7 @@ sudo apt-add-repository ppa:chris-lea/node.js
 sudo apt-get update
 sudo apt-get install nodejs nodejs-dev npm git-core
 git clone git://github.com/JumpLink/redmine-swp-script.git
+cd redmine-swp-script/
 npm install
 ```
 Npm installiert dabei automatisch die Abhängigkeiten nach, dies sind:
@@ -32,14 +33,19 @@ cd config/
 mv mysql.json.example mysql.json
 mv redmine.json.example redmine.json
 mv svn.json.example svn.json
-vim mysql.json redmine.json svn.json
+dein-lieblings-editor mysql.json redmine.json svn.json
 ```
-Den apiKey in der redmine.json kann man für einen Benutzer mit Adminrechten innerhalb von Redmine einrichten.
-
+apiKey
+------
+In der redmine.json muss der apiKey eingetragen werden, welcher zuvor in Redmine anzulegen ist:
+* Lock ich mit dem entsprechenden Admininstrator unter Redmine ein.
+* Gehe auf deine.redmine.domain/settings oder Redmine Startseite->Administration->Konfiguration, klicke auf den Reiter Authentifizierung und mache einen Hacken bei "REST-Schnittstelle aktivieren" und speicher dies.
+* Gehe auf deine.redgmine.domain/my/account oder Redmine-Startseite->Mein Konto und lege dir einen RSS-Zugriffsschlüssel an und/oder kopiere den vorhanden.
+* Speichere diesen Key in der redmine.json für das apiKey-Attribute ab.
 
 Zugriff von außen
 -----------------
-Wenn das Skript nicht auf dem selben Server ausgeführt werden soll auf dem Redmine installiert ist, dann ist noch folgendes nötig:
+Wenn das Skript nicht auf dem selben Server ausgeführt werden soll - auf dem Redmine installiert ist - dann ist noch folgendes von nöten:
 
 * bind-address innerhalb von /etc/mysql/my.cnf auskommentieren.
 * mittels MySQL die Rechte der Datenbank anpassen:
@@ -51,14 +57,24 @@ Hinweis: Backups funktionieren derzeit nur lokal
 
 Bedienungsanleitung
 ===================
+Vorbedingungen
+-------------
+* Es darf keine erforderlichen benutzerdefinierten Felder geben.
+ * Die benutzerdefinierten Felder sind unter deine.redmine.domain/custom_fields oder unter Redmine-Startseite->Administration->Benutzerdefinierte Felder zu finden.
+* Der anzulegende Benutzer-Anmeldename (= Matrikelnummer) / die anzulegende Projekt-Kennung (= Semesterbezeichnung + Projektkürzel) darf nicht bereits vergeben sein.
+* Die LDAP-Authentifizierung muss bereits eingerichtet sein.
+ * Einstellbar unter deine.redmine.domain/ldap_auth_sources oder Redmine-Startseite->Administration->LDAP-Authentifizierung
+ * Zur Selbstkontrolle ist es möglich, sich die vorhanden Authentifizierungs-Arten ausgeben zu lassen: ```./app.js --getldap```.
+ * Soll eine andere ID als 1 verwendet werden, kann sie mit der Option ```--auth_id #``` (# ersetzen mit der gewünschten ID) festgelegt werden.
+
 Die empfohlene Vorgehensweise ist:
 Vollautomatisch
 -----------
 ```
 ./app.js --template lua.json.example --auto
 ```
-Hierbei werden backups angefertigt, alle anderen Benutzer und Gruppen deaktiviert, das Template eingepflegt (in diesem Fall lua.json.example) und ein Backup-Template erstellt.
-Das Template muss vorher irgendwie generiert werden, unter templates/ abgelegt werden und dem [Beispiel-Template](https://github.com/JumpLink/redmine-swp-script/blob/master/templates/lua.json.example) entsprechen.
+Hierbei werden Backups angefertigt, alle anderen Benutzer und Gruppen deaktiviert, dass Template eingepflegt (in diesem Fall lua.json.example) und ein Backup-Template erstellt.
+Das Template muss vorher irgendwie generiert, unter templates/ abgelegt werden und dem [Beispiel-Template](https://github.com/JumpLink/redmine-swp-script/blob/master/templates/lua.json.example) entsprechen.
 
 Nur Template einpflegen
 -----------------------
@@ -102,6 +118,10 @@ Für eine ausführlichere Ausgabe kann der Debug-Modus aktiviert werden:
 usw..
 ```
 
+Weiteres
+--------
+Es gibt noch weitere Möglichkeiten, benutze dafür die Hilfe: ```./app.js --help```.
+
 Technisches
 ===========
 
@@ -142,8 +162,14 @@ Diese Gruppen werden unter Redmine als Projekt behandelt, stellen im Software-Pr
 * groups[#].users: [...]
 * groups[#].type: "..."
 
+#### groups[#].name
+* z.B. "swp01"
+
 #### groups[#].users
-* groups[#].users: [...]
+* z.B. ["inf4444", "inf1111", "inf6666"]
+
+#### groups[#].type
+* "developer" oder "coordinator"
 
 Siehe auch
 --------
