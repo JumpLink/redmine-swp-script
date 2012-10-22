@@ -118,6 +118,10 @@ Für eine ausführlichere Ausgabe kann der Debug-Modus aktiviert werden:
 usw..
 ```
 
+Weiteres
+--------
+Es gibt noch weitere Möglichkeiten, benutze dafür die Hilfe: ```./app.js --help```.
+
 Technisches
 ===========
 
