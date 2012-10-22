@@ -52,6 +52,16 @@ Hinweis: Backups funktionieren derzeit nur lokal
 
 Bedienungsanleitung
 ===================
+Vorbedinungen
+-------------
+* Es darf keine erforderlichen benutzerdefinierten Felder geben.
+ * Die benutzerdefinierten Felder sind unter <deine Domain>/custom_fields oder unter Redmine-Startseite->Administration->Benutzerdefinierte Felder zu finden.
+* Der anzulegender Benutzer-Anmeldename (= Matrikelnummer) / die anzulegende Projekt-Kennung (= Semesterbezeichnung + Projektkürzel) darf nicht bereits vergeben sein.
+* Die LDAP-Authentifizierung muss bereits eingerichtet sein.
+ * Einstellbar unter <deine Domain>/ldap_auth_sources oder Redmine-Startseite->Administration->LDAP-Authentifizierung
+ * Zur Selbstkontrolle ist es möglich, sich die vorhanden Authentifizierungs-Arten auszugeben: ```./app.js --getldap```.
+ * Soll eine andere ID als 1 verwendet werden, kann sie mit der Option ```--auth_id #``` festgelegt werden.
+
 Die empfohlene Vorgehensweise ist:
 Vollautomatisch
 -----------
