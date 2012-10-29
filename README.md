@@ -37,7 +37,7 @@ dein-lieblings-editor mysql.json redmine.json svn.json
 apiKey
 ------
 In der redmine.json muss der apiKey eingetragen werden, welcher zuvor in Redmine anzulegen ist:
-* Lock ich mit dem entsprechenden Admininstrator unter Redmine ein.
+* Melde dich mit dem entsprechenden Admininstrator unter Redmine an.
 * Gehe auf deine.redmine.domain/settings oder Redmine Startseite->Administration->Konfiguration, klicke auf den Reiter Authentifizierung und mache einen Hacken bei "REST-Schnittstelle aktivieren" und speicher dies.
 * Gehe auf deine.redgmine.domain/my/account oder Redmine-Startseite->Mein Konto und lege dir einen RSS-Zugriffsschlüssel an und/oder kopiere den vorhanden.
 * Speichere diesen Key in der redmine.json für das apiKey-Attribute ab.
